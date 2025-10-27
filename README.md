@@ -44,4 +44,7 @@ Damit können qualitative Veränderungen – etwa durch Entsiegelung oder Begrü
   [PDF (berlin.de)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf)
 
 
+### Das Projekt ist gefördert vom Land Schleswig-Holstein.
+
+<img src="nfm_logo.JPG" alt="drawing" width="400"/>
 
