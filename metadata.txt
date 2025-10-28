@@ -1,5 +1,5 @@
 [general]
-name=Netto Null Bilanzierung
+name=Blue-Green-Infrastrucuture Balance
 description=Calculates Blue-Green Infrastructure balance based on before and after / planned land use layers.
 about=This plugin supports municipalities, planners, and researchers in achieving land use neutrality by comparing sealed and unsealed surfaces between current and planned designs. It requires two layers (or GeoJSON files): one base layer with the current sealed areas and one planning layer with the proposed design. Based on the Biotopflächenfaktor Berlin (BFF 2020), it applies material-specific coefficients to quantify ecological compensation potential. The plugin calculates the balance and exports detailed CSV results.
 version=0.0.1
@@ -15,6 +15,7 @@ changelog=Initial version providing Blue-Green-Infrastructure-Balance and CSV ex
 experimental=True
 deprecated=False
 tags=Flächenkreislauf, Netto-Null, Blue Green Infrastructure Netto-Null-Bilanzierung, No-net-land-take, Land Use, Soil Sealing, Ecosystem Services, Biotopflächenfaktor, BFF 2020, Sustainability, Blau-Grüne Infrastruktur, Urban Planning, Spatial Analysis, GIS, Environmental Impact, Urban Design, Land Recycling, Ecological Compensation, Landscape Planning, Climate Adaptation
+
 
 
 
