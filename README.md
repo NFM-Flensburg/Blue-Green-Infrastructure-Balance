@@ -10,7 +10,7 @@
 </ul>
 <p>or:</p>
 <ul>
-    <li><a href="https://github.com/qgis2web/qgis2web/archive/master.zip" target="_blank">Download</a> master repository from github</li>
+    <li><a href="https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/archive/master.zip" target="_blank">Download</a> master repository from github</li>
 	<li>In QGIS, open <code>Plugins &gt; Manage and Install Plugins... &gt; Install from ZIP</code></li>	
 				
 </ul>
