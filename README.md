@@ -1,28 +1,57 @@
-# Netto-Null-Bilanzierung (Qgis Plugin)
+# Netto-Null-Bilanzierung / Blau-Grün Bilanzierung
 
-
-&nbsp;&nbsp;&nbsp;&nbsp;![nettonullbilanzierung](https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/blob/master/icons/logo.png)
+<img src="https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/blob/main/icons/icon.png" alt="drawing" width="200"/> 
 
 <h2>Installation</h2>
-<ul>
-    <li>In QGIS, select <code>Plugins > Manage and Install Plugins...</code></li>
-    <li>Find <code>qgis2web</code></li>
-</ul>
-<p>or:</p>
+
+<p>Currently only working from ZIP</p>
 <ul>
     <li><a href="https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/archive/master.zip" target="_blank">Download</a> master repository from github</li>
 	<li>In QGIS, open <code>Plugins &gt; Manage and Install Plugins... &gt; Install from ZIP</code></li>	
 				
 </ul>
 
-## Hingerund: Bilanzierung von Versiegelung und Blau-Grünen Qualitäten
+## Usage 
+
+1. **Plugin starten**
+   Öffne QGIS (ab Version 3.16) und starte das Plugin **Netto-Null-Bilanzierung** über das Menü:
+   `Plugins → Netto Null Bilanzierung → Start`
+
+2. **Eingabedaten laden**
+   Das Plugin benötigt **zwei Vektorebenen** (oder GeoJSON-Dateien):
+
+   * **Bestandsebene** – enthält die aktuell versiegelten oder bebauten Flächen 
+   * **Planungsebene** – enthält die geplanten oder umgestalteten Flächen.
+
+   Beispiel-Daten findest du im Ordner `example_data/` des Plugins.
+   Diese können direkt in QGIS geladen werden über
+   `Layer → Datenquelle öffnen → GeoJSON`.
+
+3. **Analyse ausführen**
+   Wähle die beiden Layer und die entsprechenden Felder mit Material-Eigenschaften im Plugin-Dialog aus und starte die Analyse mit
+   **„Berechnung starten“**.
+   Das Plugin berechnet die **Netto-Null-Bilanz** basierend auf dem
+   *Biotopflächenfaktor Berlin (BFF 2020)* und berücksichtigt die jeweiligen Material- oder Flächentypen.
+
+4. **Ergebnisse ansehen und exportieren**
+   Nach erfolgreicher Berechnung werden:
+
+   * Die Bilanzwerte im Plugin-Fenster angezeigt.
+   * Eine **CSV-Datei** mit den detaillierten Ergebnissen im gewählten Ausgabepfad gespeichert.
+
+5. **Interpretation**
+   * **Positive Werte** → Zusätzliche Versiegelung, Ausgleich erforderlich.
+   * **Negative Werte** → Flächenbilanz verbessert (Entsiegelung / ökologische Aufwertung).
+
+
+## Hintegrund: Bilanzierung von Versiegelung und Blau-Grünen Qualitäten
 
 Dieses Repository enthält ein Plugin, mit dem Flächenveränderungen zwischen *Bestands- und Planungszuständen* analysiert und bilanziert werden können. 
 Grundlage ist der Ansatz der **Netto-Null-Bilanzierung**, der die Veränderungen von Flächen unter Berücksichtigung ihrer blau-grüner Qualitäten bewertet. 
 
 Die Methode verbindet quantitative Flächenänderungen mit qualitativen Bewertungsfaktoren (z. B. Begrünung, Durchlässigkeit, Entsiegelung) und ermöglicht so eine differenzierte Bilanzierung im Sinne einer klima- und ressourcenschonenden Stadtentwicklung.
 
-Das Python-Skript `script_core.py` bietet folgende Hauptfunktionen:
+Das Python-Skript `script_core.py`, das auch standalone in der Python console in Qgis verwendet werden kann bietet folgende Hauptfunktionen:
 
 - **Einlesen von Geodaten** aus Datei (z. B. GeoPackage) oder direkt aus QGIS-Layern.
 - **Überlagerung** von Bestands- und Planungspolygonen zur Ermittlung der Flächenüberschneidungen.
