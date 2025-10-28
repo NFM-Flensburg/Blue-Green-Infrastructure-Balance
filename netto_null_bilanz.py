@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.PyQt.QtGui import QIcon
@@ -28,26 +29,26 @@ class NettoNullBilanz:
         """Add the plugin action (menu and toolbar button) to QGIS."""
         icon = os.path.join(self.plugin_dir, "icons", "icon.png")
 
-        self.action = QAction(QIcon(icon), u"Netto Null Bilanzierung", self.iface.mainWindow())
-        self.action.setToolTip("Run Netto Null Bilanzierung")
+        self.action = QAction(QIcon(icon), u"Blue-Green Infrastructure Balance", self.iface.mainWindow())
+        self.action.setToolTip("Run BGI Analysis")
         self.action.triggered.connect(self.run)
 
         # Add to QGIS toolbar and menu
         self.iface.addToolBarIcon(self.action)
-        self.iface.addPluginToMenu("&Netto Null Bilanzierung", self.action)
+        self.iface.addPluginToMenu("&Blue-Green Infrastructure Balance", self.action)
 
     # ------------------------------------------------------------------
 
     def unload(self):
         """Remove the plugin action from QGIS toolbar and menu."""
         self.iface.removeToolBarIcon(self.action)
-        self.iface.removePluginMenu("&Netto Null Bilanzierung", self.action)
+        self.iface.removePluginMenu("&Blue-Green Infrastructure Balance", self.action)
 
     # ------------------------------------------------------------------
 
     def run(self):
         """Execute the main plugin logic via the dialog."""
-        self.dlg = NettoNullBilanzDialog()
+        self.dlg = NettoNullBilanzDialog(self.plugin_dir)
 
         if not self.dlg.exec_():  # User pressed Cancel
             return
@@ -58,15 +59,16 @@ class NettoNullBilanz:
         base_field_name = params["base_field_name"]
         plan_layer_name = params["plan_layer_name"]
         plan_field_name = params["plan_field_name"]
-        input_csv = params["input_csv_path"]
+        factors_csv = params["factors_csv"]
         output_csv_path = params["output_path"]
+        building_green = params["building_green"]
 
         # Validate required inputs
         if not base_layer_name or not base_field_name or not plan_layer_name or not plan_field_name:
             QMessageBox.warning(
                 None,
                 "Missing Input",
-                "Please make sure *base layer*, *base field*, *plan layer* and *plan field* are selected.",
+                "Please make sure *before layer*, *before field*, *after layer* and *after field* are selected.",
             )
             return
 
@@ -81,8 +83,9 @@ class NettoNullBilanz:
                 base_field_name=base_field_name,
                 planning_layer_name=plan_layer_name,
                 plan_field_name=plan_field_name,
-                factors_csv=input_csv,
+                factors_csv=factors_csv,
                 output_csv_path=output_csv_path,
+                building_green = building_green
             )
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
