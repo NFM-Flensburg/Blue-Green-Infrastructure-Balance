@@ -1,4 +1,4 @@
-# Blue-Green Infastructure Balance
+# Blue-Green Infrastructure Balance
 
 <img src="https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/blob/main/icons/icon.png" alt="drawing" width="200"/> 
 
