@@ -1,92 +1,93 @@
-# Netto-Null-Bilanzierung / Blau-Grün Bilanzierung
+# Net Zero / Blue-Green Balance
 
 <img src="https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/blob/main/icons/icon.png" alt="drawing" width="200"/> 
 
-<h2>Installation</h2>
+## Installation
 
-<p>Currently only working from ZIP</p>
-<ul>
-    <li><a href="https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/archive/master.zip" target="_blank">Download</a> master repository from github</li>
-	<li>In QGIS, open <code>Plugins &gt; Manage and Install Plugins... &gt; Install from ZIP</code></li>	
-				
-</ul>
+Currently, the plugin works only from a ZIP file.
 
-## Usage 
+1. [Download](https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/archive/master.zip) the master repository from GitHub.  
+2. In QGIS, go to `Plugins → Manage and Install Plugins… → Install from ZIP` and select the downloaded ZIP file.  
 
-1. **Plugin starten**
-   Öffne QGIS (ab Version 3.16) und starte das Plugin **Netto-Null-Bilanzierung** über das Menü:
-   `Plugins → Netto Null Bilanzierung → Start`
+---
 
-2. **Eingabedaten laden**
-   Das Plugin benötigt **zwei Vektorebenen** (oder GeoJSON-Dateien):
+## Usage
 
-   * **Bestandsebene** – enthält die aktuell versiegelten oder bebauten Flächen 
-   * **Planungsebene** – enthält die geplanten oder umgestalteten Flächen.
+1. **Start the Plugin**  
+   Open QGIS (version 3.16 or higher) and launch the plugin via the menu:  
+   `Plugins → Net Zero Balance → Start`.
 
-   Beispiel-Daten findest du im Ordner `example_data/` des Plugins.
-   Diese können direkt in QGIS geladen werden über
-   `Layer → Datenquelle öffnen → GeoJSON`.
+2. **Load Input Data**  
+   The plugin requires **two vector layers** (or GeoJSON files):
 
-3. **Analyse ausführen**
-   Wähle die beiden Layer und die entsprechenden Felder mit Material-Eigenschaften im Plugin-Dialog aus und starte die Analyse mit
-   **„Berechnung starten“**.
-   Das Plugin berechnet die **Netto-Null-Bilanz** basierend auf dem
-   *Biotopflächenfaktor Berlin (BFF 2020)* und berücksichtigt die jeweiligen Material- oder Flächentypen.
+   * **Before Layer** – contains the current sealed or built areas.  
+   * **After Layer** – contains areas after / planned.
 
-4. **Ergebnisse ansehen und exportieren**
-   Nach erfolgreicher Berechnung werden:
+   Example data can be found in the `example_data/` folder of the plugin.  
+   These can be loaded directly into QGIS via:  
+   `Layer → Add Layer → Add Vector Layer → GeoJSON`.
 
-   * Die Bilanzwerte im Plugin-Fenster angezeigt.
-   * Eine **CSV-Datei** mit den detaillierten Ergebnissen im gewählten Ausgabepfad gespeichert.
+3. **Run the Analysis**  
+   Select the layers and the corresponding fields with material or surface attributes in the plugin dialog.   
 
-5. **Interpretation**
-   * **Positive Werte** → Zusätzliche Versiegelung, Ausgleich erforderlich.
-   * **Negative Werte** → Flächenbilanz verbessert (Entsiegelung / ökologische Aufwertung).
+   The plugin calculates the **Blue-Green Balance** based on the *Biotope Area Factor Berlin (BFF 2020)*, taking into account the material or surface types.
 
+4. **View and Export Results**  
+   After the calculation:
 
-*Um detaillierte Fehlermeldungen zu erhalten, öffne in Qgis die Python-Console. Dort werden alle Informationen ausgegeben (sowohl im Falle eines Fehlers, als auch bei erfolgreicher Berechnung)*
+   * The balance values are displayed in the plugin window.  
+   * A **CSV file** with detailed results is saved to the output path you specify.  
 
+5. **Interpretation**  
+   * **Positive values** → additional sealing, compensation required.  
+   * **Negative values** → balance improved (designed for de-sealing / ecological enhancement).  
 
+> *For detailed error messages, open the Python Console in QGIS. All information will be printed there, including errors or successful results.*
 
-## Hintegrund: Bilanzierung von Versiegelung und Blau-Grünen Qualitäten
+---
 
-Dieses Repository enthält ein Plugin, mit dem Flächenveränderungen zwischen *Bestands- und Planungszuständen* analysiert und bilanziert werden können. 
-Grundlage ist der Ansatz der **Netto-Null-Bilanzierung**, der die Veränderungen von Flächen unter Berücksichtigung ihrer blau-grüner Qualitäten bewertet. 
+## Background: Sealing and Blue-Green Infrastructure Balance
 
-Die Methode verbindet quantitative Flächenänderungen mit qualitativen Bewertungsfaktoren (z. B. Begrünung, Durchlässigkeit, Entsiegelung) und ermöglicht so eine differenzierte Bilanzierung im Sinne einer klima- und ressourcenschonenden Stadtentwicklung.
+This plugin allows analysis and balancing of changes between **existing and new / planned states**. The approach follows the **Blue-Green Balance methodology**, evaluating changes in land surfaces with respect to their blue-green infrastructure qualities.  
 
-Das Python-Skript `script_core.py`, das auch standalone in der Python console in Qgis verwendet werden kann bietet folgende Hauptfunktionen:
+The method combines quantitative area changes with qualitative evaluation factors (e.g., greening, permeability, de-sealing), enabling detailed ecological and climate-sensitive urban planning.
 
-- **Einlesen von Geodaten** aus Datei (z. B. GeoPackage) oder direkt aus QGIS-Layern.
-- **Überlagerung** von Bestands- und Planungspolygonen zur Ermittlung der Flächenüberschneidungen.
-- **Bilanzierung** der Flächenänderungen nach Kategorien (z. B. „Versiegelt“, „Teilversiegelt“, „Begrünt“, etc.).
-- **Faktorbasiertes Scoring** auf Grundlage des [Biotopflächenfaktors 2020 (BFF 2020)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf).
-- **Export** der Ergebnisse als CSV-Tabelle mit allen Flächen und Bilanzwerten.
+The Python script `script_core.py` can also be run standalone in the QGIS Python console and provides the following functions:
 
-## Bewertungsmethodik - Biotopflächenfaktor 2020 (BFF 2020)
+- **Read geospatial data** from a file (e.g., GeoPackage) or directly from QGIS layers.  
+- **Overlay existing and planned polygons** to determine intersecting areas.  
+- **Balance area changes** by categories (e.g., “Sealed,” “Partially Sealed,” “Green,” etc.).  
+- **Factor-based scoring** according to the [Biotope Area Factor 2020 (BFF 2020)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf).  
+- **Export results** as a CSV table with all areas and balance values.  
 
-Zur Bewertung der Flächenqualitäten wird der **Biotopflächenfaktor 2020 (BFF)** des  
-[Instituts für Agrar- und Stadtökologische Projekte (IASP)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf) verwendet.  
-Er bildet die Grundlage für die Bewertung der ökologischen Wirksamkeit von Flächen hinsichtlich:
+---
 
-- Mikroklima  
-- Luftqualität  
-- Biodiversität  
-- Regenwasserbewirtschaftung  
-- Gesundheit und Aufenthaltsqualität  
+## Evaluation Method – Biotope Area Factor 2020 (BFF 2020)
 
-Die Faktoren reichen von **0 (versiegelt)** bis **1 (Vegetationsfläche)** und decken auch Zwischenstufen wie **teilversiegelt**, **begrünte Belagsflächen** oder **Gründach** ab.  
-Damit können qualitative Veränderungen – etwa durch Entsiegelung oder Begrünung – in quantitativen Flächenbilanzen abgebildet werden.
+The plugin uses the **Biotope Area Factor 2020 (BFF)** from the  
+[Institute for Agricultural and Urban Ecological Projects (IASP)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf)  
+to assess the ecological effectiveness of surfaces with respect to:
 
+- Microclimate  
+- Air quality  
+- Biodiversity  
+- Rainwater management  
+- Health and recreational quality  
 
-## Quellen & weiterführende Literatur
+Factor values range from **0 (fully sealed)** to **1 (vegetated area)**, including intermediate stages such as **partially sealed, vegetated paved surfaces, or green roofs**. This allows qualitative improvements (e.g., de-sealing or greening) to be represented in quantitative area balances.
 
-- **Institut für Agrar- und Stadtökologische Projekte (IASP) (2020)**  
-  *Der Biotopflächenfaktor 2020 – Abschluss- und Gesamtbericht zweier Studien*  
-  [PDF (berlin.de)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf)
+---
 
+## Sources & Further Reading
 
-### Das Projekt ist gefördert vom Land Schleswig-Holstein.
+- **Institute for Agricultural and Urban Ecological Projects (IASP) (2020)**  
+  *The Biotope Area Factor 2020 – Final Report of Two Studies*  
+  [PDF (Berlin.de)](https://www.berlin.de/sen/uvk/_assets/natur-gruen/landschaftsplanung/bff-biotopflaechenfaktor/broschuere_bff_gesamtbericht_iasp_20201215.pdf)
+
+---
+
+### Project Funding
+
+This project is funded by the **State of Schleswig-Holstein**.
 
 <img src="nfm_logo.JPG" alt="drawing" width="400"/>
-
