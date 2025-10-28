@@ -73,8 +73,8 @@ def calculate_intersections(union_by_field: dict, grouped_plan_geoms: dict) -> l
                     inter_geom = base_geom.intersection(geom)
                     intersecting_area += inter_geom.area()
             results.append({
-                'Bestand': base_value,
-                'Planung': group_value,
+                'Before': base_value,
+                'After': group_value,
                 'Area': round(intersecting_area, 2),
             })
     return results
@@ -102,8 +102,8 @@ def calculate_unsealed_areas(grouped_plan_geoms: dict, geom_by_field: dict) -> l
                     inter_geom = unsealed_geom.intersection(geom)
                     unsealed_area += inter_geom.area()
             results.append({
-                'Bestand': 'Uncovered',
-                'Planung': group_value,
+                'Before': 'Uncovered',
+                'After': group_value,
                 'Area': round(unsealed_area, 2),
             })
     return results
@@ -114,11 +114,11 @@ def apply_factors_with_pandas(results: list, factors_csv: str, output_csv_path: 
     Use pandas to read factor values, merge with results, compute BFF_Area, and optionally write to CSV.
 
     Formula:
-        BFF_Area = (Faktor_Bestand - Faktor_Planung) * Area
+        BFF_Area = (Factor_before - Factor_after) * Area
 
     Args:
-        results (list[dict]): List of dictionaries with keys ['Bestand', 'Planung', 'Area'].
-        factors_csv (str): Path to CSV containing at least ['Beschreibung', 'Faktor'] columns.
+        results (list[dict]): List of dictionaries with keys ['Before', 'After', 'Area'].
+        factors_csv (str): Path to CSV containing at least ['Description', 'Factor' columns.
         output_csv_path (str, optional): If provided, writes the final dataframe to this path.
 
     Returns:
@@ -130,25 +130,25 @@ def apply_factors_with_pandas(results: list, factors_csv: str, output_csv_path: 
 
     # Normalize column names
     df_factors.columns = [c.strip() for c in df_factors.columns]
-    if not {'Beschreibung', 'BFF_2020'}.issubset(df_factors.columns):
-        raise ValueError("Factor CSV must contain columns: 'Beschreibung' and 'BFF_2020'")
-    df_factors = df_factors[['Beschreibung', 'BFF_2020']]
+    if not {'Description', 'BFF_2020'}.issubset(df_factors.columns):
+        raise ValueError("Factor CSV must contain columns: 'Description' and 'BFF_2020'")
+    df_factors = df_factors[['Description', 'BFF_2020']]
     
     # --- Merge factor values for Bestand and Planung ---
     df = (
         df_results
-        .merge(df_factors.rename(columns={'Beschreibung': 'Bestand', 'BFF_2020': 'Faktor_Bestand'}),
-               on='Bestand', how='left')
-        .merge(df_factors.rename(columns={'Beschreibung': 'Planung', 'BFF_2020': 'Faktor_Planung'}),
-               on='Planung', how='left')
+        .merge(df_factors.rename(columns={'Description': 'Before', 'BFF_2020': 'Factor_before'}),
+               on='Before', how='left')
+        .merge(df_factors.rename(columns={'Description': 'After', 'BFF_2020': 'Factor_after'}),
+               on='After', how='left')
     )
 
     # --- Fill missing factors with 0 ---
-    df['Faktor_Bestand'] = df['Faktor_Bestand'].fillna(0)
-    df['Faktor_Planung'] = df['Faktor_Planung'].fillna(0)
+    df['Factor_before'] = df['Factor_before'].fillna(0)
+    df['Factor_after'] = df['Factor_after'].fillna(0)
 
     # --- Calculate BFF_Area ---
-    df['BFF_Area'] = (df['Faktor_Bestand'] - df['Faktor_Planung']) * df['Area']
+    df['BFF_Area'] = (df['Factor_before'] - df['Factor_after']) * df['Area']
     df['BFF_Area'] = df['BFF_Area'].round(2)
 
     # --- Write to CSV if requested ---
@@ -168,14 +168,14 @@ def write_results_to_csv(results: list, total_area_by_group: dict, output_path: 
     # Add total area rows
     for group_name, total_area in total_area_by_group.items():
         results.append({
-            'Bestand': 'Gesamt',
-            'Planung': group_name,
+            'Before': 'Total',
+            'After': group_name,
             'Area': round(total_area, 2),
             'BFF_Area': ''
         })
 
     with open(output_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=['Bestand', 'Planung', 'Area', 'BFF_Area'])
+        writer = csv.DictWriter(file, fieldnames=['Before', 'After', 'Area', 'BFF_Area'])
         writer.writeheader()
         writer.writerows(results)
 
@@ -199,7 +199,7 @@ def main(
     base_layer_name: str = None,
     planning_file: str = None,
     planning_layer_name: str = None,
-    building_green: list = None
+    building_green: list = []
 ):
     """
     Netto-Null-Bilanzierung main function.
@@ -241,7 +241,7 @@ def main(
     results = calculate_intersections(union_by_field, grouped_plan_geoms)
     results += calculate_unsealed_areas(grouped_plan_geoms, geom_by_field)
 
-    results = add_building_green(results, building_green=[])
+    results = add_building_green(results, building_green=building_green)
 
     # --- Apply factors and export ---
     results_df = apply_factors_with_pandas(results, factors_csv)
@@ -249,10 +249,10 @@ def main(
     results_df.to_csv(output_csv_path, index=False, encoding="utf-8")
 
     print(f"\n Results written to: {output_csv_path}")
-    print(f"Gesamt-BBF-Bilanz: {int(results_df['BFF_Area'].sum())} m²")
+    print(f"Total balance: {int(results_df['BFF_Area'].sum())} m2")
     
     results_dict = {
-        "Gesamt-Bilanz": f"{int(results_df['BFF_Area'].sum())} m²", 
+        "Total balance": f"{int(results_df['BFF_Area'].sum())} m2", 
         "Results path": f"{output_csv_path}"}
     return (results_dict)
 
