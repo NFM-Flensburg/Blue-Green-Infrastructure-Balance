@@ -1,0 +1,18 @@
+[general]
+name=Netto Null Bilanzierung
+description=Calculates Netto-Null Bilanz (No Net Land Take) based on existing and planned land use layers.
+about=This plugin supports municipalities, planners, and researchers in achieving land use neutrality by comparing sealed and unsealed surfaces between current and planned designs. It requires two layers (or GeoJSON files): one base layer with the current sealed areas and one planning layer with the proposed design. Based on the Biotopflächenfaktor Berlin (BFF 2020), it applies material-specific coefficients to quantify ecological compensation potential. The plugin calculates the Netto-Null Bilanz and exports detailed CSV results.
+version=0.0.1
+qgisMinimumVersion=3.16
+author=Simon Hilpert
+email=simon.hilpert@posteo.de
+category=Analysis
+icon=icons/icon.png
+homepage=https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung
+repository=https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung
+tracker=https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/issues
+changelog=Initial version providing Netto-Null Bilanz analysis and CSV export.
+experimental=True
+deprecated=False
+tags=Flächenkreislauf, Netto-Null, Netto-Null-Bilanzierung, No-net-land-take, Land Use, Soil Sealing, Ecosystem Services, Biotopflächenfaktor, BFF 2020, Sustainability, Blau-Grüne Infrastruktur, Urban Planning, Spatial Analysis, GIS, Environmental Impact, Urban Design, Land Recycling, Ecological Compensation, Landscape Planning, Climate Adaptation
+
