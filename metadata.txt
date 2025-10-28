@@ -8,12 +8,13 @@ author=Simon Hilpert
 email=simon.hilpert@posteo.de
 category=Analysis
 icon=icons/icon.png
-homepage=https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung
-repository=https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung
-tracker=https://github.com/NFM-Flensburg/Netto-Null-Bilanzierung/issues
-changelog=Initial version providing Netto-Null Bilanz analysis and CSV export.
+homepage=https://github.com/NFM-Flensburg/Blue-Green-Infrastructure-Balance 
+repository=https://github.com/NFM-Flensburg/Blue-Green-Infrastructure-Balance 
+tracker=https://github.com/NFM-Flensburg/Blue-Green-Infrastructure-Balance /issues
+changelog=Initial version providing Blue-Green-Infrastructure-Balance and CSV export.
 experimental=True
 deprecated=False
-tags=Flächenkreislauf, Netto-Null, Netto-Null-Bilanzierung, No-net-land-take, Land Use, Soil Sealing, Ecosystem Services, Biotopflächenfaktor, BFF 2020, Sustainability, Blau-Grüne Infrastruktur, Urban Planning, Spatial Analysis, GIS, Environmental Impact, Urban Design, Land Recycling, Ecological Compensation, Landscape Planning, Climate Adaptation
+tags=Flächenkreislauf, Netto-Null, Blue Green Infrastructure Netto-Null-Bilanzierung, No-net-land-take, Land Use, Soil Sealing, Ecosystem Services, Biotopflächenfaktor, BFF 2020, Sustainability, Blau-Grüne Infrastruktur, Urban Planning, Spatial Analysis, GIS, Environmental Impact, Urban Design, Land Recycling, Ecological Compensation, Landscape Planning, Climate Adaptation
+
 
 
