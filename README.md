@@ -44,6 +44,10 @@
    * **Negative Werte** → Flächenbilanz verbessert (Entsiegelung / ökologische Aufwertung).
 
 
+*Um detaillierte Fehlermeldungen zu erhalten, öffne in Qgis die Python-Console. Dort werden alle Informationen ausgegeben (sowohl im Falle eines Fehlers, als auch bei erfolgreicher Berechnung)*
+
+
+
 ## Hintegrund: Bilanzierung von Versiegelung und Blau-Grünen Qualitäten
 
 Dieses Repository enthält ein Plugin, mit dem Flächenveränderungen zwischen *Bestands- und Planungszuständen* analysiert und bilanziert werden können. 
