@@ -254,7 +254,6 @@ def main(
     results_dict = {
         "Total balance": f"{int(results_df['BFF_Area'].sum())} m2", 
         "Results path": f"{output_csv_path}"}
-    return (results_dict)
-
+    return (results_dict, results_df)
 
 
