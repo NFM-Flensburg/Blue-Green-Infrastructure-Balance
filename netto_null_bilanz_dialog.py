@@ -42,19 +42,19 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         self.update_plan_field_list()
 
         # Output CSV
-        self.output_path = QtWidgets.QLineEdit()
-        self.output_button = QtWidgets.QPushButton("Browse…")
-        self.output_button.clicked.connect(self.select_output)
+        #self.output_path = QtWidgets.QLineEdit()
+        #self.output_button = QtWidgets.QPushButton("Browse…")
+        #self.output_button.clicked.connect(self.select_output)
 
-        output_layout = QtWidgets.QHBoxLayout()
-        output_layout.addWidget(self.output_path)
-        output_layout.addWidget(self.output_button)
+        #output_layout = QtWidgets.QHBoxLayout()
+        #output_layout.addWidget(self.output_path)
+        #output_layout.addWidget(self.output_button)
 
         form_layout.addRow("Before (layer):", self.base_layer_combo)
         form_layout.addRow("Before (field):", self.base_field_combo)
         form_layout.addRow("After (layer):", self.plan_layer_combo)
         form_layout.addRow("After (field):", self.plan_field_combo)
-        form_layout.addRow("Output CSV:", output_layout)
+        #form_layout.addRow("Output CSV:", output_layout)
 
         main_layout.addLayout(form_layout)
 
@@ -197,7 +197,7 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
             "base_field_name": self.base_field_combo.currentText(),
             "plan_layer_name": self.plan_layer_combo.currentText(),
             "plan_field_name": self.plan_field_combo.currentText(),
-            "output_path": self.output_path.text(),
+            #"output_path": self.output_path.text(),
             "building_green": building_green,
             "factors_csv": os.path.join(self.plugin_dir, "data", "factors.csv")
         }
