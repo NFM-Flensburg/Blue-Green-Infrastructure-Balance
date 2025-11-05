@@ -41,20 +41,29 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         self.plan_field_combo = QtWidgets.QComboBox()
         self.update_plan_field_list()
 
-        # Output CSV
-        #self.output_path = QtWidgets.QLineEdit()
-        #self.output_button = QtWidgets.QPushButton("Browse…")
-        #self.output_button.clicked.connect(self.select_output)
+        # Optional Building Green Layer
+        self.building_green_layer_combo = QtWidgets.QComboBox()
+        self.populate_layers(self.building_green_layer_combo)
+        self.building_green_layer_combo.insertItem(0, "(None)")
+        self.building_green_layer_combo.setCurrentIndex(0)
+        
 
-        #output_layout = QtWidgets.QHBoxLayout()
-        #output_layout.addWidget(self.output_path)
-        #output_layout.addWidget(self.output_button)
+
+        # Output CSV
+        self.output_path = QtWidgets.QLineEdit()
+        self.output_button = QtWidgets.QPushButton("Browse…")
+        self.output_button.clicked.connect(self.select_output)
+
+        output_layout = QtWidgets.QHBoxLayout()
+        output_layout.addWidget(self.output_path)
+        output_layout.addWidget(self.output_button)
 
         form_layout.addRow("Before (layer):", self.base_layer_combo)
         form_layout.addRow("Before (field):", self.base_field_combo)
         form_layout.addRow("After (layer):", self.plan_layer_combo)
         form_layout.addRow("After (field):", self.plan_field_combo)
-        #form_layout.addRow("Output CSV:", output_layout)
+        form_layout.addRow("Building Green (optional):", self.building_green_layer_combo)
+        form_layout.addRow("Output CSV:", output_layout)
 
         main_layout.addLayout(form_layout)
 
@@ -72,7 +81,8 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         # Buttons
         btn_layout = QtWidgets.QHBoxLayout()
         self.add_row_btn = QtWidgets.QPushButton("➕ Add Row")
-        self.remove_row_btn = QtWidgets.QPushButton("🗑️ Remove Selected")
+        self.remove_row_btn = QtWidgets.QPushButton("🗑 Remove Selected")
+
         self.add_row_btn.clicked.connect(self.add_green_row)
         self.remove_row_btn.clicked.connect(self.remove_green_row)
         btn_layout.addWidget(self.add_row_btn)
@@ -192,12 +202,19 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
                 "After": planung_combo.currentText() if planung_combo else "",
                 "Area": area_val
             })
+
+        building_green_layer_name = (
+            self.building_green_layer_combo.currentText()
+            if self.building_green_layer_combo.currentText() != "(None)"
+            else None
+        )
         return {
             "base_layer_name": self.base_layer_combo.currentText(),
             "base_field_name": self.base_field_combo.currentText(),
             "plan_layer_name": self.plan_layer_combo.currentText(),
             "plan_field_name": self.plan_field_combo.currentText(),
-            #"output_path": self.output_path.text(),
+            "output_path": self.output_path.text(),
             "building_green": building_green,
-            "factors_csv": os.path.join(self.plugin_dir, "data", "factors.csv")
+            "factors_csv": os.path.join(self.plugin_dir, "data", "factors.csv"),
+            "building_green_layer_name": building_green_layer_name
         }
