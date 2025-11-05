@@ -2,6 +2,7 @@
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsProject
 from qgis.utils import iface
 import os
 import traceback 
@@ -111,5 +112,6 @@ class NettoNullBilanz:
         except Exception as e:
     	    traceback.print_exc()  # <-- Full traceback in the Python console
     	    QMessageBox.critical(None, "Error", f"❌ {str(e)}")
+
 
 
