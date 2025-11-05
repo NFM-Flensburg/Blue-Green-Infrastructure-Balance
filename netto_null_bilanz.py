@@ -99,19 +99,19 @@ class NettoNullBilanz:
             msg.setIcon(QMessageBox.Information)
             msg.setWindowTitle("Success")
             msg.setTextFormat(Qt.PlainText)  # prevents rich text parsing (no unwanted wrapping)
+           
+            plotting.waterfall(df, self.output_dir)
+            
             msg.setText("✅ Results exported successfully!")
             text = "\n \n".join([f"{k}: {v}" for k, v in results_info.items()])
             msg.setInformativeText(text)
             msg.exec_()
-
-            plotting.waterfall(df, self.output_dir)
-            
-            QMessageBox.information(None, "Success", f"✅ Results exported successfully!\n\n{msg}")
-            
+           
 
         except Exception as e:
     	    traceback.print_exc()  # <-- Full traceback in the Python console
     	    QMessageBox.critical(None, "Error", f"❌ {str(e)}")
+
 
 
 
