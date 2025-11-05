@@ -23,22 +23,25 @@ Currently, the plugin works only from a ZIP file.
    * **Before Layer** – contains the current sealed or built areas.  
    * **After Layer** – contains areas after / planned.
 
+   You can also add (optionally) other information such as building gree. Either inside the dialog or
+   as an additional point layer holding the information. (see example data).
+   
    Example data can be found in the `example_data/` folder of the plugin.  
    These can be loaded directly into QGIS via:  
    `Layer → Add Layer → Add Vector Layer → GeoJSON`.
 
-3. **Run the Analysis**  
+4. **Run the Analysis**  
    Select the layers and the corresponding fields with material or surface attributes in the plugin dialog.   
 
    The plugin calculates the **Blue-Green Balance** based on the *Biotope Area Factor Berlin (BFF 2020)*, taking into account the material or surface types.
 
-4. **View and Export Results**  
+5. **View and Export Results**  
    After the calculation:
 
    * The balance values are displayed in the plugin window.  
    * A **CSV file** with detailed results is saved to the output path you specify.  
 
-5. **Interpretation**  
+6. **Interpretation**  
    * **Positive values** → additional sealing, compensation required.  
    * **Negative values** → balance improved (designed for de-sealing / ecological enhancement).  
 
