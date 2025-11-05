@@ -250,8 +250,9 @@ def main(
 
     print(f"\nResults written to: {output_csv_path}")
     print(f"Total balance: {int(results_df['BFF_Area'].sum())} m2")
-
-    return {
+    result_dict = {
         "Total balance": f"{int(results_df['BFF_Area'].sum())} m2",
         "Results path": output_csv_path,
     }
+    
+    return (result_dict, results_df)
