@@ -7,7 +7,7 @@ import os
 import traceback 
 
 from .netto_null_bilanz_dialog import NettoNullBilanzDialog
-from . import script_core
+from . import script_core, plotting
 
 
 class NettoNullBilanz:
@@ -20,6 +20,15 @@ class NettoNullBilanz:
         """
         self.iface = iface
         self.plugin_dir = os.path.dirname(__file__)
+        project = QgsProject.instance()
+        project_path = project.fileName()
+        if project_path:
+            project_dir = os.path.dirname(project_path)
+            self.output_dir = os.path.join(project_dir, "bgib-results")
+        else:
+            # fallback if no project is saved yet
+            self.output_dir = os.path.expanduser("~/bgib-results")
+        os.makedirs(self.output_dir, exist_ok=True)
         self.action = None
         self.dlg = None
 
@@ -55,13 +64,12 @@ class NettoNullBilanz:
 
         # Retrieve parameters from dialog
         params = self.dlg.get_parameters()
-        print(params)
         base_layer_name = params["base_layer_name"]
         base_field_name = params["base_field_name"]
         plan_layer_name = params["plan_layer_name"]
         plan_field_name = params["plan_field_name"]
         factors_csv = params["factors_csv"]
-        output_csv_path = params["output_path"]
+        output_csv_path = os.path.join(self.output_dir, "bgig_balance.csv")
         building_green = params["building_green"]
         building_green_layer_name = params["building_green_layer_name"]
         
@@ -74,13 +82,9 @@ class NettoNullBilanz:
             )
             return
 
-        if not output_csv_path:
-            QMessageBox.warning(None, "Missing Output", "Please specify an output CSV file path.")
-            return
-
         try:
             # Call the processing function in script_core
-            results = script_core.main(
+            results_info, df = script_core.main(
                 base_layer_name=base_layer_name,
                 base_field_name=base_field_name,
                 planning_layer_name=plan_layer_name,
@@ -95,7 +99,7 @@ class NettoNullBilanz:
             msg.setWindowTitle("Success")
             msg.setTextFormat(Qt.PlainText)  # prevents rich text parsing (no unwanted wrapping)
             msg.setText("✅ Results exported successfully!")
-            text = "\n \n".join([f"{k}: {v}" for k, v in results.items()])
+            text = "\n \n".join([f"{k}: {v}" for k, v in results_info.items()])
             msg.setInformativeText(text)
             msg.exec_()
             
