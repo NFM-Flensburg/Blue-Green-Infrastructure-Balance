@@ -102,11 +102,14 @@ class NettoNullBilanz:
             text = "\n \n".join([f"{k}: {v}" for k, v in results_info.items()])
             msg.setInformativeText(text)
             msg.exec_()
+
+            plotting.waterfall(df, self.output_dir)
             
-            #QMessageBox.information(None, "Success", f"✅ Results exported successfully!\n\n{msg}")
+            QMessageBox.information(None, "Success", f"✅ Results exported successfully!\n\n{msg}")
             
 
         except Exception as e:
     	    traceback.print_exc()  # <-- Full traceback in the Python console
     	    QMessageBox.critical(None, "Error", f"❌ {str(e)}")
+
 
