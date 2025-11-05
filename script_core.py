@@ -22,7 +22,7 @@ def get_layer_from_project(layer_name: str) -> QgsVectorLayer:
 def load_layer_from_file(file_path: str) -> QgsVectorLayer:
     """Load a GeoJSON or GeoPackage file as a QGIS vector layer."""
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
+        raise FileNotFoundError(f"File not found: {file_patfilh}")
     layer = QgsVectorLayer(file_path, os.path.basename(file_path), "ogr")
     if not layer.isValid():
         raise ValueError(f"Failed to load vector layer: {file_path}")
@@ -195,45 +195,42 @@ def main(
     base_field_name: str,
     factors_csv: str,
     output_csv_path: str,
-    base_file: str = None,
-    base_layer_name: str = None,
-    planning_file: str = None,
-    planning_layer_name: str = None,
-    building_green: list = []
+    base_layer_name: str,
+    planning_layer_name: str,
+    building_green: list, 
+    building_green_layer_name: str = None,
 ):
     """
-    Netto-Null-Bilanzierung main function.
-
-    You can provide either:
-      - base_file (GeoJSON/GPKG) or base_layer_name (QGIS project layer)
-      - planning_file (GeoJSON/GPKG) or planning_layer_name (QGIS project layer)
+    Netto-Null-Bilanzierung main function (QGIS-only version).
+    Reads all layers directly from the QGIS project by name.
     """
+
     # --- Base layer ---
-    if base_file:
-        print(f"Using base layer from file: {base_file}")
-        base_layer = load_layer_from_file(base_file)
-    elif base_layer_name:
-        print(f"Using base layer from project: {base_layer_name}")
-        base_layer = get_layer_from_project(base_layer_name)
-    else:
-        raise ValueError("You must provide either 'base_file' or 'base_layer_name'.")
+    print(f"Using base layer from project: {base_layer_name}")
+    base_layer = get_layer_from_project(base_layer_name)
 
     # --- Planning layer ---
-    if planning_file:
-        print(f"Using planning layer from file: {planning_file}")
-        planning_layer = load_layer_from_file(planning_file)
-    elif planning_layer_name:
-        print(f"Using planning layer from project: {planning_layer_name}")
-        planning_layer = get_layer_from_project(planning_layer_name)
-    else:
-        raise ValueError("You must provide either 'planning_file' or 'planning_layer_name'.")
+    print(f"Using planning layer from project: {planning_layer_name}")
+    planning_layer = get_layer_from_project(planning_layer_name)
 
-    if not plan_field_name:
-        raise ValueError("You must specify 'plan_field_name' to group planning geometries.")
-    
-    if not base_field_name:
-        raise ValueError("You must specify 'base_field_name' to group planning geometries.")
+    # --- Optional building_green layer ---
+    building_green_from_layer = []
+    if building_green_layer_name:
+        print(f"Using building_green layer from project: {building_green_layer_name}")
+        bg_layer = get_layer_from_project(building_green_layer_name)
 
+        for feat in bg_layer.getFeatures():
+            geom = feat.geometry()
+            if geom and geom.type() == 0:  # 0 = point
+                building_green_from_layer.append({
+                    "Before": "Belagsfl\u00E4che (versiegelt)",
+                    "After": feat[plan_field_name] if plan_field_name in feat.fields().names() else "Building Green",
+                    "Area": feat["Area"] if plan_field_name in feat.fields().names() else Null,
+                })
+
+        print(f"Added {len(building_green_from_layer)} building_green points from '{building_green_layer_name}'")
+
+    # --- Grouping and calculations ---
     grouped_plan_geoms = group_layer_by_attribute(planning_layer, plan_field_name)
     geom_by_field, union_by_field = build_union_geometries(base_layer, base_field_name)
 
@@ -241,19 +238,20 @@ def main(
     results = calculate_intersections(union_by_field, grouped_plan_geoms)
     results += calculate_unsealed_areas(grouped_plan_geoms, geom_by_field)
 
+    # --- Add building_green entries ---
+    results = add_building_green(results, building_green=building_green_from_layer)
     results = add_building_green(results, building_green=building_green)
 
-    # --- Apply factors and export ---
+    # --- Apply factors ---
     results_df = apply_factors_with_pandas(results, factors_csv)
+
     os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
     results_df.to_csv(output_csv_path, index=False, encoding="utf-8")
 
-    print(f"\n Results written to: {output_csv_path}")
+    print(f"\nResults written to: {output_csv_path}")
     print(f"Total balance: {int(results_df['BFF_Area'].sum())} m2")
-    
-    results_dict = {
-        "Total balance": f"{int(results_df['BFF_Area'].sum())} m2", 
-        "Results path": f"{output_csv_path}"}
-    return (results_dict, results_df)
 
-
+    return {
+        "Total balance": f"{int(results_df['BFF_Area'].sum())} m2",
+        "Results path": output_csv_path,
+    }
