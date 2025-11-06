@@ -89,6 +89,11 @@ Factor values range from **0 (fully sealed)** to **1 (vegetated area)**, includi
 
 ---
 
+## AI Assistance Disclosure
+
+Parts of this source code, documentation, or other project materials were created with the help of [ChatGPT (GPT-5) by OpenAI](https://openai.com/). All content has been reviewed and verified by the project maintainers.
+
+---
 ### Project Funding
 
 This project is funded by the **State of Schleswig-Holstein**.
