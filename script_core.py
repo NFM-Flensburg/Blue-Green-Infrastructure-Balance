@@ -148,7 +148,7 @@ def apply_factors_with_pandas(results: list, factors_csv: str, output_csv_path: 
     df['Factor_after'] = df['Factor_after'].fillna(0)
 
     # --- Calculate BFF_Area ---
-    df['BFF_Area'] = (df['Factor_before'] - df['Factor_after']) * df['Area']
+    df['BFF_Area'] = (df['Factor_after'] - df['Factor_before']) * df['Area']
     df['BFF_Area'] = df['BFF_Area'].round(2)
 
     # --- Write to CSV if requested ---
