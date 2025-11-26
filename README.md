@@ -42,8 +42,8 @@ Currently, the plugin works only from a ZIP file.
    * A **CSV file** with detailed results is saved to the output path you specify.  
 
 6. **Interpretation**  
-   * **Positive values** → additional sealing, compensation required.  
-   * **Negative values** → balance improved (designed for de-sealing / ecological enhancement).  
+   * **Positive values** → additional blue-green qualities
+   * **Negative values** → loss in blue-green quality (e.g. new sealed surfaces)
 
 > *For detailed error messages, open the Python Console in QGIS. All information will be printed there, including errors or successful results.*
 
