@@ -23,6 +23,8 @@ def waterfall(df, output_dir):
     })
 
     df_final = pd.concat([df, df_total], ignore_index=True)
+    
+    total_color = "#5ECBC8" if net_balance >= 0 else "#CD4C46"
     # --- Plotly Waterfall ---
     fig = go.Figure(go.Waterfall(
         name="BFF_Area",
@@ -31,13 +33,21 @@ def waterfall(df, output_dir):
         y=df_final["BFF_Area"],
         measure = ["relativ"] * (len(df_final)-1) + ["total"],
         connector={"line": {"color": "black", "width": 1, "dash": "dot"}},
-        decreasing={"marker": {"color": "#CDDBA9"}},  # red
-        increasing={"marker": {"color": "#BF5743"}},  # green
-        totals={"marker": {"color": "#79B2D1"}},  # blue
+        decreasing={"marker": {"color": "#ECC846"}},  
+        increasing={"marker": {"color": "#4A588A"}},  
+        totals={"marker": {"color": total_color}},  # blue
         text=[f"{v:.1f}" for v in df_final["BFF_Area"]],
         textposition="outside"
     ))
 
+    fig.add_shape(
+        type="line",
+        x0=-0.5,
+        x1=len(df_final)-0.5,
+        y0=0,
+        y1=0,
+        line=dict(color="black", width=1, dash="dash")
+    )
 
     # --- Layout ---
     fig.update_layout(
