@@ -215,20 +215,40 @@ def main(
 
     # --- Optional building_green layer ---
     building_green_from_layer = []
+
     if building_green_layer_name:
-        print(f"Using building_green layer from project: {building_green_layer_name}")
+        print(f"Using building_green table from project: {building_green_layer_name}")
         bg_layer = get_layer_from_project(building_green_layer_name)
 
-        for feat in bg_layer.getFeatures():
-            geom = feat.geometry()
-            if geom and geom.type() == 0:  # 0 = point
-                building_green_from_layer.append({
-                    "Before": "Belagsfl\u00E4che (versiegelt)",
-                    "After": feat[plan_field_name] if plan_field_name in feat.fields().names() else "Building Green",
-                    "Area": feat["Area"] if plan_field_name in feat.fields().names() else Null,
-                })
+        field_names = [f.name() for f in bg_layer.fields()]
 
-        print(f"Added {len(building_green_from_layer)} building_green points from '{building_green_layer_name}'")
+        # configurable column names
+        area_field_name = "Area"   # change if your Excel header differs
+        after_field_name = plan_field_name  # you want to reuse the same selection
+
+        has_area = area_field_name in field_names
+        has_after = after_field_name in field_names
+
+        if not has_area:
+            raise ValueError(
+                f"Excel table '{building_green_layer_name}' is missing required column '{area_field_name}'. "
+                f"Available columns: {field_names}"
+            )
+
+        for feat in bg_layer.getFeatures():
+            area_val = feat[area_field_name]
+
+            # optional: skip empty/zero areas
+            if area_val is None:
+                continue
+
+            building_green_from_layer.append({
+                "Before": "Versiegelte Belagsfläche",
+                "After": feat[after_field_name] if has_after else "Building Green",
+                "Area": area_val,
+            })
+
+        print(f"Added {len(building_green_from_layer)} building_green rows from '{building_green_layer_name}'")
 
     # --- Grouping and calculations ---
     grouped_plan_geoms = group_layer_by_attribute(planning_layer, plan_field_name)
