@@ -1,36 +1,22 @@
+
+# -*- coding: utf-8 -*-
 import os
 import csv
-import pandas as pd
 from collections import defaultdict
-from qgis.core import (
-    QgsProject, QgsGeometry, QgsVectorLayer
-)
+from typing import Callable, Optional, Tuple, Dict, List
 
+import pandas as pd
+from qgis.core import QgsProject, QgsGeometry, QgsVectorLayer
 
-# =============================================================
-# Utility Functions
-# =============================================================
 
 def get_layer_from_project(layer_name: str) -> QgsVectorLayer:
-    """Retrieve a QGIS layer by name."""
     layers = QgsProject.instance().mapLayersByName(layer_name)
     if not layers:
         raise ValueError(f"Layer '{layer_name}' not found in QGIS project.")
     return layers[0]
 
 
-def load_layer_from_file(file_path: str) -> QgsVectorLayer:
-    """Load a GeoJSON or GeoPackage file as a QGIS vector layer."""
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_patfilh}")
-    layer = QgsVectorLayer(file_path, os.path.basename(file_path), "ogr")
-    if not layer.isValid():
-        raise ValueError(f"Failed to load vector layer: {file_path}")
-    return layer
-
-
-def build_union_geometries(base_layer: QgsVectorLayer, field_name: str) -> tuple[dict, dict]:
-    """Group and union base layer geometries by a given field."""
+def build_union_geometries(base_layer: QgsVectorLayer, field_name: str) -> Tuple[dict, dict]:
     geom_by_field = defaultdict(list)
     for feat in base_layer.getFeatures():
         geom_by_field[feat[field_name]].append(feat.geometry())
@@ -39,12 +25,10 @@ def build_union_geometries(base_layer: QgsVectorLayer, field_name: str) -> tuple
         field_value: QgsGeometry.unaryUnion(geoms)
         for field_value, geoms in geom_by_field.items()
     }
-
     return geom_by_field, union_by_field
 
 
 def group_layer_by_attribute(layer: QgsVectorLayer, attribute_name: str) -> dict:
-    """Group features of a layer by an attribute value."""
     grouped = defaultdict(list)
     for feat in layer.getFeatures():
         value = feat[attribute_name]
@@ -55,7 +39,6 @@ def group_layer_by_attribute(layer: QgsVectorLayer, attribute_name: str) -> dict
 
 
 def calculate_total_area_per_group(grouped_geometries: dict) -> dict:
-    """Calculate total area for each group of geometries."""
     return {
         group_name: sum(geom.area() for geom in geoms if geom and not geom.isEmpty())
         for group_name, geoms in grouped_geometries.items()
@@ -63,7 +46,6 @@ def calculate_total_area_per_group(grouped_geometries: dict) -> dict:
 
 
 def calculate_intersections(union_by_field: dict, grouped_plan_geoms: dict) -> list:
-    """Calculate intersecting areas between base and planning geometries."""
     results = []
     for base_value, base_geom in union_by_field.items():
         for group_value, plan_geoms in grouped_plan_geoms.items():
@@ -72,16 +54,11 @@ def calculate_intersections(union_by_field: dict, grouped_plan_geoms: dict) -> l
                 if base_geom.intersects(geom):
                     inter_geom = base_geom.intersection(geom)
                     intersecting_area += inter_geom.area()
-            results.append({
-                'Before': base_value,
-                'After': group_value,
-                'Area': round(intersecting_area, 2),
-            })
+            results.append({'Before': base_value, 'After': group_value, 'Area': round(intersecting_area, 2)})
     return results
 
 
 def calculate_unsealed_areas(grouped_plan_geoms: dict, geom_by_field: dict) -> list:
-    """Calculate 'unsealed' (difference) area between planning and base geometries."""
     all_plan_geoms = [g for group_geoms in grouped_plan_geoms.values() for g in group_geoms if not g.isEmpty()]
     merged_plan_geom = QgsGeometry.unaryUnion(all_plan_geoms) if all_plan_geoms else None
 
@@ -101,40 +78,20 @@ def calculate_unsealed_areas(grouped_plan_geoms: dict, geom_by_field: dict) -> l
                 if unsealed_geom.intersects(geom):
                     inter_geom = unsealed_geom.intersection(geom)
                     unsealed_area += inter_geom.area()
-            results.append({
-                'Before': 'Uncovered',
-                'After': group_value,
-                'Area': round(unsealed_area, 2),
-            })
+            results.append({'Before': 'Uncovered', 'After': group_value, 'Area': round(unsealed_area, 2)})
     return results
 
 
-def apply_factors_with_pandas(results: list, factors_csv: str, output_csv_path: str = None) -> pd.DataFrame:
-    """
-    Use pandas to read factor values, merge with results, compute BFF_Area, and optionally write to CSV.
-
-    Formula:
-        BFF_Area = (Factor_before - Factor_after) * Area
-
-    Args:
-        results (list[dict]): List of dictionaries with keys ['Before', 'After', 'Area'].
-        factors_csv (str): Path to CSV containing at least ['Description', 'Factor' columns.
-        output_csv_path (str, optional): If provided, writes the final dataframe to this path.
-
-    Returns:
-        pd.DataFrame: DataFrame with added columns ['Faktor_Bestand', 'Faktor_Planung', 'BFF_Area'].
-    """
-    # --- Load data ---
+def apply_factors_with_pandas(results: list, factors_csv: str) -> pd.DataFrame:
     df_results = pd.DataFrame(results)
     df_factors = pd.read_csv(factors_csv, sep=";")
 
-    # Normalize column names
     df_factors.columns = [c.strip() for c in df_factors.columns]
     if not {'Description', 'BFF_2020'}.issubset(df_factors.columns):
         raise ValueError("Factor CSV must contain columns: 'Description' and 'BFF_2020'")
+
     df_factors = df_factors[['Description', 'BFF_2020']]
-    
-    # --- Merge factor values for Bestand and Planung ---
+
     df = (
         df_results
         .merge(df_factors.rename(columns={'Description': 'Before', 'BFF_2020': 'Factor_before'}),
@@ -143,52 +100,85 @@ def apply_factors_with_pandas(results: list, factors_csv: str, output_csv_path: 
                on='After', how='left')
     )
 
-    # --- Fill missing factors with 0 ---
+    # If something is missing here, validation should have stopped earlier; keep safe fill anyway.
     df['Factor_before'] = df['Factor_before'].fillna(0)
     df['Factor_after'] = df['Factor_after'].fillna(0)
 
-    # --- Calculate BFF_Area ---
+    # BFF_Area
     df['BFF_Area'] = (df['Factor_after'] - df['Factor_before']) * df['Area']
     df['BFF_Area'] = df['BFF_Area'].round(2)
-
-    # --- Write to CSV if requested ---
-    if output_csv_path:
-        os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
-        df.to_csv(output_csv_path, index=False, encoding='utf-8')
-        print(f"Results with BFF_Area written to: {output_csv_path}")
-
     return df
 
 
+def add_building_green(results: list, building_green: list) -> list:
+    for green in building_green or []:
+        results.append(green)
+    return results
 
-def write_results_to_csv(results: list, total_area_by_group: dict, output_path: str):
-    """Write all results to a CSV file."""
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    # Add total area rows
-    for group_name, total_area in total_area_by_group.items():
-        results.append({
-            'Before': 'Total',
-            'After': group_name,
-            'Area': round(total_area, 2),
-            'BFF_Area': ''
+def _bg_from_layer(
+    building_green_layer_name: str,
+    building_green_field_name: Optional[str],
+    log_cb: Optional[Callable[[str], None]] = None,
+) -> list:
+    """Extract building-green rows from an optional layer/table."""
+    out = []
+    if not building_green_layer_name:
+        return out
+
+    bg_layer = get_layer_from_project(building_green_layer_name)
+    field_names = [f.name() for f in bg_layer.fields()]
+
+    area_field = "Area"
+    has_area = area_field in field_names
+    has_after = building_green_field_name in field_names if building_green_field_name else False
+
+    if log_cb:
+        log_cb(f"Building-green layer: {building_green_layer_name}")
+        log_cb(f"  Using area field: {area_field if has_area else '(geometry area)'}")
+        log_cb(f"  Using after field: {building_green_field_name if has_after else '(constant)'}")
+
+    for feat in bg_layer.getFeatures():
+        geom = feat.geometry()
+        # Determine area
+        area_val = None
+        if has_area:
+            area_val = feat[area_field]
+        if area_val is None:
+            # if geometry has area (polygon), use it
+            if geom and not geom.isEmpty():
+                try:
+                    area_val = float(geom.area())
+                except Exception:
+                    area_val = None
+
+        if area_val is None:
+            continue
+
+        try:
+            area_val = float(area_val)
+        except Exception:
+            continue
+
+        if area_val == 0:
+            continue
+
+        after_val = "Building Green"
+        if has_after:
+            v = feat[building_green_field_name]
+            if v is not None and str(v).strip():
+                after_val = str(v).strip()
+
+        out.append({
+            "Before": "Versiegelte Belagsfläche",
+            "After": after_val,
+            "Area": area_val,
         })
 
-    with open(output_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=['Before', 'After', 'Area', 'BFF_Area'])
-        writer.writeheader()
-        writer.writerows(results)
+    if log_cb:
+        log_cb(f"  Added {len(out)} building-green rows from layer")
+    return out
 
-    print(f"Results written to: {output_path}")
-
-
-def add_building_green(results: list, building_green: list):
-    """
-    """
-    for green in building_green:
-        results.append(green)
-    
-    return results 
 
 def main(
     plan_field_name: str,
@@ -197,82 +187,47 @@ def main(
     output_csv_path: str,
     base_layer_name: str,
     planning_layer_name: str,
-    building_green: list, 
+    building_green: list,
     building_green_layer_name: str = None,
+    building_green_field_name: str = None,
+    log_cb: Optional[Callable[[str], None]] = None,
 ):
-    """
-    Netto-Null-Bilanzierung main function (QGIS-only version).
-    Reads all layers directly from the QGIS project by name.
-    """
-
-    # --- Base layer ---
-    print(f"Using base layer from project: {base_layer_name}")
+    """Main calculation entry point."""
+    if log_cb:
+        log_cb(f"Using base layer: {base_layer_name}")
     base_layer = get_layer_from_project(base_layer_name)
 
-    # --- Planning layer ---
-    print(f"Using planning layer from project: {planning_layer_name}")
+    if log_cb:
+        log_cb(f"Using plan layer: {planning_layer_name}")
     planning_layer = get_layer_from_project(planning_layer_name)
 
-    # --- Optional building_green layer ---
-    building_green_from_layer = []
+    # Optional building green layer
+    building_green_from_layer = _bg_from_layer(building_green_layer_name, building_green_field_name, log_cb=log_cb)
 
-    if building_green_layer_name:
-        print(f"Using building_green table from project: {building_green_layer_name}")
-        bg_layer = get_layer_from_project(building_green_layer_name)
-
-        field_names = [f.name() for f in bg_layer.fields()]
-
-        # configurable column names
-        area_field_name = "Area"   # change if your Excel header differs
-        after_field_name = plan_field_name  # you want to reuse the same selection
-
-        has_area = area_field_name in field_names
-        has_after = after_field_name in field_names
-
-        if not has_area:
-            raise ValueError(
-                f"Excel table '{building_green_layer_name}' is missing required column '{area_field_name}'. "
-                f"Available columns: {field_names}"
-            )
-
-        for feat in bg_layer.getFeatures():
-            area_val = feat[area_field_name]
-
-            # optional: skip empty/zero areas
-            if area_val is None:
-                continue
-
-            building_green_from_layer.append({
-                "Before": "Versiegelte Belagsfläche",
-                "After": feat[after_field_name] if has_after else "Building Green",
-                "Area": area_val,
-            })
-
-        print(f"Added {len(building_green_from_layer)} building_green rows from '{building_green_layer_name}'")
-
-    # --- Grouping and calculations ---
     grouped_plan_geoms = group_layer_by_attribute(planning_layer, plan_field_name)
     geom_by_field, union_by_field = build_union_geometries(base_layer, base_field_name)
 
-    total_area_by_group = calculate_total_area_per_group(grouped_plan_geoms)
     results = calculate_intersections(union_by_field, grouped_plan_geoms)
     results += calculate_unsealed_areas(grouped_plan_geoms, geom_by_field)
 
-    # --- Add building_green entries ---
-    results = add_building_green(results, building_green=building_green_from_layer)
-    results = add_building_green(results, building_green=building_green)
+    # Add building_green entries (layer + manual table)
+    results = add_building_green(results, building_green_from_layer)
+    results = add_building_green(results, building_green)
 
-    # --- Apply factors ---
+    # Apply factors and write
     results_df = apply_factors_with_pandas(results, factors_csv)
 
     os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
-    results_df.to_csv(output_csv_path, index=False, encoding="utf-8")
+    # Windows-friendly for umlauts
+    results_df.to_csv(output_csv_path, index=False, encoding="utf-8-sig")
 
-    print(f"\nResults written to: {output_csv_path}")
-    print(f"Total balance: {int(results_df['BFF_Area'].sum())} m2")
+    total = float(results_df["BFF_Area"].sum()) if "BFF_Area" in results_df.columns else 0.0
+    if log_cb:
+        log_cb(f"Results written to: {output_csv_path}")
+        log_cb(f"Total balance: {int(total)} m²")
+
     result_dict = {
-        "Total balance": f"{int(results_df['BFF_Area'].sum())} m2",
+        "Total balance": f"{int(total)} m2",
         "Results path": output_csv_path,
     }
-    
-    return (result_dict, results_df)
+    return result_dict, results_df
