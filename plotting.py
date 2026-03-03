@@ -4,7 +4,7 @@ import plotly
 import plotly.graph_objects as go
 
 
-def waterfall(df, output_dir):
+def waterfall(df, project_title, output_dir):
     df = df[df["BFF_Area"] != 0]
 
     # --- Create label "Before → After" ---
@@ -51,7 +51,7 @@ def waterfall(df, output_dir):
 
     # --- Layout ---
     fig.update_layout(
-        title="Blue-Green-Infrastructure Balance",
+        title="Blue-Green-Infrastructure Balance " + project_title,
         xaxis_title="Transition (Before → After)",
         yaxis_title="Area",
         showlegend=False,
@@ -62,4 +62,4 @@ def waterfall(df, output_dir):
         margin=dict(l=60, r=40, t=80, b=80)
     )
     print("Plotting Waterfall Diagramm.")
-    plotly.offline.plot(fig, filename=os.path.join(output_dir, 'interactive_waterfall_plot.html'), auto_open=False)
+    plotly.offline.plot(fig, filename=os.path.join(output_dir, 'waterfall_plot.html'), auto_open=False)
