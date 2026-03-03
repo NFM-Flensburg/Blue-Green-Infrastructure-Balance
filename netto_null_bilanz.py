@@ -22,14 +22,10 @@ def sanitize_project_name(name: str) -> str:
     name = (name or "").strip()
     if not name:
         return ""
-    # replace whitespace with underscore
-    name = re.sub(r"\s+", "_", name, flags=re.UNICODE)
-    # remove Windows forbidden characters
-    name = re.sub(r'[<>:"/\\\\|?*]', "", name)
-    # remove control chars
-    name = "".join(ch for ch in name if ch >= " " and ch != "\x7f")
-    # avoid trailing dots/spaces on Windows
-    name = name.rstrip(" .")
+    name = re.sub(r"\s+", "_", name, flags=re.UNICODE)          # whitespace -> _
+    name = re.sub(r'[<>:"/\\\\|?*]', "", name)              # Windows forbidden
+    name = "".join(ch for ch in name if ch >= " " and ch != "\x7f")  # control chars
+    name = name.rstrip(" .")                                    # trailing dot/space
     return name
 
 
@@ -41,7 +37,6 @@ def normalize_key(s: str) -> str:
     if not s:
         return ""
     s = s.casefold()
-    # common german replacements
     s = (
         s.replace("ä", "ae")
          .replace("ö", "oe")
@@ -70,7 +65,6 @@ class NettoNullBilanz:
         self.action = QAction(QIcon(icon), "Blue-Green Infrastructure Balance", self.iface.mainWindow())
         self.action.setToolTip("Run BGI Analysis")
         self.action.triggered.connect(self.run)
-
         self.iface.addToolBarIcon(self.action)
         self.iface.addPluginToMenu("&Blue-Green Infrastructure Balance", self.action)
 
@@ -83,9 +77,9 @@ class NettoNullBilanz:
     # ------------------------------------------------------------------
     def run(self):
         """Open dialog non-destructively (keeps it open after runs)."""
-        self.dlg = NettoNullBilanzDialog(self.plugin_dir)
-        # Dialog must emit run_requested(dict)
-        self.dlg.run_requested.connect(self._run_with_params)
+        if self.dlg is None:
+            self.dlg = NettoNullBilanzDialog(self.plugin_dir)
+            self.dlg.run_requested.connect(self._run_with_params)
         self.dlg.show()
         self.dlg.raise_()
         self.dlg.activateWindow()
@@ -98,17 +92,11 @@ class NettoNullBilanz:
         project_path = project.fileName()
         if project_path:
             return os.path.dirname(project_path), project_path
-        # fallback if project not saved
         return os.path.expanduser("~"), ""
 
     def _write_log(self, log_path: str, text: str, overwrite: bool = True) -> None:
-        """
-        Write a Windows-Notepad friendly log (UTF-8 with BOM + CRLF).
-        Overwrites by default to keep the latest run easily accessible.
-        """
+        """Write Windows-Notepad friendly log (UTF-8 BOM + CRLF)."""
         mode = "w" if overwrite else "a"
-
-        # Normalize newlines and force CRLF for Notepad
         normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
         normalized = normalized.replace("\n", "\r\n")
         if not normalized.endswith("\r\n"):
@@ -182,19 +170,13 @@ class NettoNullBilanz:
                 lines.append("  " + line)
             lines.append("")
 
-        # Return LF; _write_log converts to CRLF.
         return "\n".join(lines)
 
     def _validate_matching(self, *, base_layer_name, base_field_name, plan_layer_name, plan_field_name,
                            factors_csv, project_title, building_green_layer_name=None, building_green_field_name=None):
         """
-        Validate that all unique values in base/plan/(optional) building-green fields exist in factors CSV 'Description'.
-
-        Strict behavior:
-          - Missing values in Base/Plan/Building-green => raises ValueError (blocking).
-
-        Returns: (warnings: list[str], report_text: str)
-        Raises: ValueError with detailed report if blocking issues found.
+        Strict validation that all unique values in Base / Plan / (optional) Building-green
+        exist in the factors CSV column 'Description' (after normalization).
         """
         warnings = []
         lines = []
@@ -206,25 +188,21 @@ class NettoNullBilanz:
         if not os.path.exists(factors_csv):
             raise ValueError(f"Factors CSV not found: {factors_csv}")
 
-        # --- Load factors ---
         df_f = pd.read_csv(factors_csv, sep=";")
         df_f.columns = [c.strip() for c in df_f.columns]
         if not {"Description", "BFF_2020"}.issubset(df_f.columns):
             raise ValueError("Factor CSV must contain columns: 'Description' and 'BFF_2020'")
 
         csv_keys_raw = [str(x).strip() for x in df_f["Description"].dropna().tolist()]
-        # norm -> original (keep one representative original)
         csv_keys_norm = {normalize_key(x): x for x in csv_keys_raw if normalize_key(x)}
         if not csv_keys_norm:
             raise ValueError("Factors CSV contains no usable 'Description' values.")
 
-        # --- Helper: read unique values from a layer field ---
         def unique_values(layer_name: str, field_name: str):
             layer_list = QgsProject.instance().mapLayersByName(layer_name)
             if not layer_list:
                 raise ValueError(f"Layer not found: {layer_name}")
             lyr = layer_list[0]
-
             field_names = [f.name() for f in lyr.fields()]
             if field_name not in field_names:
                 raise ValueError(f"Field '{field_name}' not found in layer '{layer_name}'. Available: {field_names}")
@@ -239,7 +217,6 @@ class NettoNullBilanz:
                     vals.add(s)
             return vals
 
-        # --- Collect values ---
         base_vals = unique_values(base_layer_name, base_field_name)
         plan_vals = unique_values(plan_layer_name, plan_field_name)
 
@@ -250,25 +227,20 @@ class NettoNullBilanz:
                 raise ValueError("Building-green layer selected, but building-green field is empty.")
             bg_vals = unique_values(building_green_layer_name, building_green_field_name)
 
-        # --- Missing checks ---
         base_missing = sorted([v for v in base_vals if normalize_key(v) not in csv_keys_norm])
         plan_missing = sorted([v for v in plan_vals if normalize_key(v) not in csv_keys_norm])
         bg_missing = sorted([v for v in bg_vals if normalize_key(v) not in csv_keys_norm]) if bg_used else []
 
-        # --- Unused CSV entries (warning) ---
         all_layer_norms = {normalize_key(v) for v in (list(base_vals) + list(plan_vals) + list(bg_vals)) if normalize_key(v)}
         unused = sorted([csv_keys_norm[k] for k in csv_keys_norm.keys() if k not in all_layer_norms])
         if unused:
             warnings.append(f"{len(unused)} CSV keys unused (present in CSV but not in selected layers).")
 
-        # --- Report ---
         lines.append(f"Base layer '{base_layer_name}' / field '{base_field_name}': {len(base_vals)} unique values")
         if base_missing:
             lines.append("❌ Missing in CSV (Base) (first 200):")
             for v in base_missing[:200]:
                 lines.append(f"  - {v}")
-            if len(base_missing) > 200:
-                lines.append(f"  ... ({len(base_missing) - 200} more)")
         else:
             lines.append("✅ All Base values found in CSV.")
         lines.append("")
@@ -278,8 +250,6 @@ class NettoNullBilanz:
             lines.append("❌ Missing in CSV (Plan) (first 200):")
             for v in plan_missing[:200]:
                 lines.append(f"  - {v}")
-            if len(plan_missing) > 200:
-                lines.append(f"  ... ({len(plan_missing) - 200} more)")
         else:
             lines.append("✅ All Plan values found in CSV.")
         lines.append("")
@@ -290,8 +260,6 @@ class NettoNullBilanz:
                 lines.append("❌ Missing in CSV (Building-green) (first 200):")
                 for v in bg_missing[:200]:
                     lines.append(f"  - {v}")
-                if len(bg_missing) > 200:
-                    lines.append(f"  ... ({len(bg_missing) - 200} more)")
             else:
                 lines.append("✅ All Building-green values found in CSV.")
             lines.append("")
@@ -303,13 +271,10 @@ class NettoNullBilanz:
             lines.append("⚠ CSV entries unused (first 200):")
             for v in unused[:200]:
                 lines.append(f"  - {v}")
-            if len(unused) > 200:
-                lines.append(f"  ... ({len(unused) - 200} more)")
             lines.append("")
 
         report = "\n".join(lines)
 
-        # --- Blocking condition ---
         if base_missing or plan_missing or bg_missing:
             raise ValueError(report)
 
@@ -325,7 +290,6 @@ class NettoNullBilanz:
         except Exception:
             pass
 
-        # Extract params
         base_layer_name = params.get("base_layer_name", "")
         base_field_name = params.get("base_field_name", "")
         plan_layer_name = params.get("plan_layer_name", "")
@@ -335,18 +299,15 @@ class NettoNullBilanz:
         building_green_layer_name = params.get("building_green_layer_name")
         building_green_field_name = params.get("building_green_field_name")
 
-        project_title_raw = params.get("project_title") or ""
-        project_title = sanitize_project_name(project_title_raw) or "UnnamedProject"
+        project_title = sanitize_project_name(params.get("project_title") or "") or "UnnamedProject"
 
         project_dir, project_path = self._project_dir()
-        results_dir_name = f"Results_BlueGreenBalance__{project_title}"
-        output_dir = os.path.join(project_dir, results_dir_name)
+        output_dir = os.path.join(project_dir, f"Results_BlueGreenBalance__{project_title}")
         os.makedirs(output_dir, exist_ok=True)
 
         output_csv_path = os.path.join(output_dir, f"{project_title}__bgig_balance.csv")
         log_path = os.path.join(output_dir, f"{project_title}__bgig_log.txt")
 
-        # Basic required inputs
         if not base_layer_name or not base_field_name or not plan_layer_name or not plan_field_name:
             QMessageBox.warning(None, "Missing Input",
                                 "Please select *before layer/field* and *after layer/field*.")
@@ -391,7 +352,7 @@ class NettoNullBilanz:
                 building_green_field_name=building_green_field_name,
                 validation_text=str(e), warnings=[], status="validation_failed", error=str(e)
             )
-            self._write_log(log_path, log_text)
+            self._write_log(log_path, log_text, overwrite=True)
             return
 
         # Run processing
@@ -413,8 +374,8 @@ class NettoNullBilanz:
                 log_cb=log_cb,
             )
 
-            # Plotting (optional)
             try:
+                # repo's plotting signature appears to be waterfall(df, project_title, out_dir)
                 plotting.waterfall(df, project_title, output_dir)
             except Exception as pe:
                 warnings = warnings or []
@@ -426,18 +387,15 @@ class NettoNullBilanz:
             self.dlg.append_log(f"Total balance: {results_info.get('Total balance', '')}")
             self.dlg.append_log(f"Results path: {results_info.get('Results path', '')}")
 
-            # Success message
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setWindowTitle("Success")
             msg.setTextFormat(Qt.PlainText)
             msg.setText("✅ Results exported successfully!")
-            info_text = "\n".join([f"{k}: {v}" for k, v in results_info.items()])
-            msg.setInformativeText(info_text)
+            msg.setInformativeText("\n".join([f"{k}: {v}" for k, v in results_info.items()]))
             msg.setDetailedText(validation_text)
             msg.exec_()
 
-            # Log
             total_balance = None
             try:
                 total_balance = float(df["BFF_Area"].sum())
@@ -452,15 +410,14 @@ class NettoNullBilanz:
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
                 validation_text=validation_text, warnings=warnings, status="success",
-                results_info={**results_info, "total_balance_m2": total_balance}
+                results_info={**results_info, "total_balance_m2": total_balance},
             )
-            self._write_log(log_path, log_text)
+            self._write_log(log_path, log_text, overwrite=True)
 
         except Exception as e:
             traceback.print_exc()
             self.dlg.append_log("❌ Error during processing")
             self.dlg.append_log(str(e))
-
             QMessageBox.critical(None, "Error", f"❌ {str(e)}")
 
             log_text = self._make_log_text(
@@ -470,127 +427,9 @@ class NettoNullBilanz:
                 plan_layer_name=plan_layer_name, plan_field_name=plan_field_name,
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
-                validation_text=validation_text, warnings=warnings, status="failed", error=str(e)
+                validation_text="", warnings=warnings, status="failed", error=str(e),
             )
             try:
-                self._write_log(log_path, log_text)
+                self._write_log(log_path, log_text, overwrite=True)
             except Exception:
                 pass
-# -*- coding: utf-8 -*-
-from qgis.PyQt.QtCore import QCoreApplication, Qt
-from qgis.PyQt.QtWidgets import QAction, QMessageBox
-from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsProject
-from qgis.utils import iface
-import os
-import traceback 
-
-from .netto_null_bilanz_dialog import NettoNullBilanzDialog
-from . import script_core, plotting
-
-
-class NettoNullBilanz:
-    """Main QGIS plugin class for Netto Null Bilanzierung."""
-
-    def __init__(self, iface):
-        """
-        Constructor for the plugin.
-        :param iface: A QGIS interface instance that allows interaction with QGIS.
-        """
-        self.iface = iface
-        self.plugin_dir = os.path.dirname(__file__)
-        project = QgsProject.instance()
-        project_path = project.fileName()
-        if project_path:
-            project_dir = os.path.dirname(project_path)
-            self.output_dir = os.path.join(project_dir, "bgib-results")
-        else:
-            # fallback if no project is saved yet
-            self.output_dir = os.path.expanduser("~/bgib-results")
-        os.makedirs(self.output_dir, exist_ok=True)
-        self.action = None
-        self.dlg = None
-
-    # ------------------------------------------------------------------
-
-    def initGui(self):
-        """Add the plugin action (menu and toolbar button) to QGIS."""
-        icon = os.path.join(self.plugin_dir, "icons", "icon.png")
-
-        self.action = QAction(QIcon(icon), u"Blue-Green Infrastructure Balance", self.iface.mainWindow())
-        self.action.setToolTip("Run BGI Analysis")
-        self.action.triggered.connect(self.run)
-
-        # Add to QGIS toolbar and menu
-        self.iface.addToolBarIcon(self.action)
-        self.iface.addPluginToMenu("&Blue-Green Infrastructure Balance", self.action)
-
-    # ------------------------------------------------------------------
-
-    def unload(self):
-        """Remove the plugin action from QGIS toolbar and menu."""
-        self.iface.removeToolBarIcon(self.action)
-        self.iface.removePluginMenu("&Blue-Green Infrastructure Balance", self.action)
-
-    # ------------------------------------------------------------------
-
-    def run(self):
-        """Execute the main plugin logic via the dialog."""
-        self.dlg = NettoNullBilanzDialog(self.plugin_dir)
-
-        if not self.dlg.exec_():  # User pressed Cancel
-            return
-
-        # Retrieve parameters from dialog
-        params = self.dlg.get_parameters()
-        base_layer_name = params["base_layer_name"]
-        base_field_name = params["base_field_name"]
-        plan_layer_name = params["plan_layer_name"]
-        plan_field_name = params["plan_field_name"]
-        factors_csv = params["factors_csv"]
-        output_csv_path = os.path.join(self.output_dir, "bgig_balance.csv")
-        building_green = params["building_green"]
-        building_green_layer_name = params["building_green_layer_name"]
-        
-        # Validate required inputs
-        if not base_layer_name or not base_field_name or not plan_layer_name or not plan_field_name:
-            QMessageBox.warning(
-                None,
-                "Missing Input",
-                "Please make sure *before layer*, *before field*, *after layer* and *after field* are selected.",
-            )
-            return
-
-        try:
-            # Call the processing function in script_core
-            results_info, df = script_core.main(
-                base_layer_name=base_layer_name,
-                base_field_name=base_field_name,
-                planning_layer_name=plan_layer_name,
-                plan_field_name=plan_field_name,
-                factors_csv=factors_csv,
-                output_csv_path=output_csv_path,
-                building_green = building_green,
-                building_green_layer_name=building_green_layer_name
-            )
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setWindowTitle("Success")
-            msg.setTextFormat(Qt.PlainText)  # prevents rich text parsing (no unwanted wrapping)
-           
-            plotting.waterfall(df, self.output_dir)
-            
-            msg.setText("✅ Results exported successfully!")
-            text = "\n \n".join([f"{k}: {v}" for k, v in results_info.items()])
-            msg.setInformativeText(text)
-            msg.exec_()
-           
-
-        except Exception as e:
-    	    traceback.print_exc()  # <-- Full traceback in the Python console
-    	    QMessageBox.critical(None, "Error", f"❌ {str(e)}")
-
-
-
-
-
