@@ -109,7 +109,7 @@ class NettoNullBilanz:
     def _make_log_text(self, *, project_title, project_path, output_dir, output_csv_path, factors_csv,
                        base_layer_name, base_field_name, plan_layer_name, plan_field_name,
                        building_green_layer_name, building_green_field_name,
-                       validation_text, warnings, status, results_info=None, error=None) -> str:
+                       validation_text, warnings, status, results_info=None, error=None, factors_table_text=None) -> str:
         lines = []
         lines.append("========================================")
         lines.append("Blue-Green Infrastructure Balance – Log")
@@ -154,6 +154,15 @@ class NettoNullBilanz:
                 lines.append(f"  {k}: {v}")
             lines.append("")
 
+        if factors_table_text:
+            lines.append("----------------------------------------")
+            lines.append("Factors used (from CSV):")
+            lines.append("----------------------------------------")
+            lines.append("")
+            for line in str(factors_table_text).splitlines():
+                lines.append("  " + line)
+            lines.append("")
+
         if error:
             lines.append("----------------------------------------")
             lines.append("Error:")
@@ -170,6 +179,20 @@ class NettoNullBilanz:
                 lines.append("  " + line)
             lines.append("")
 
+        return "\n".join(lines)
+
+    def _format_factors_table(self, df_factors: pd.DataFrame, used_norm_keys: set) -> str:
+        """Return a tab-separated table (pasteable into Excel) of factors used in this run."""
+        df = df_factors.copy()
+        df["__norm"] = df["Description"].astype(str).map(normalize_key)
+        df_used = df[df["__norm"].isin(used_norm_keys)].copy()
+        df_used = df_used.drop_duplicates(subset=["__norm"]).sort_values("Description")
+
+        lines = ["Description\tBFF_2020"]
+        for _, r in df_used.iterrows():
+            desc = str(r["Description"])
+            val = r["BFF_2020"]
+            lines.append(f"{desc}\t{val}")
         return "\n".join(lines)
 
     def _validate_matching(self, *, base_layer_name, base_field_name, plan_layer_name, plan_field_name,
@@ -236,6 +259,11 @@ class NettoNullBilanz:
         if unused:
             warnings.append(f"{len(unused)} CSV keys unused (present in CSV but not in selected layers).")
 
+
+        # Factors table for log (only factors actually used in this run)
+        used_norm_keys = {normalize_key(v) for v in (list(base_vals) + list(plan_vals) + list(bg_vals)) if normalize_key(v)}
+        factors_table_text = self._format_factors_table(df_f, used_norm_keys)
+
         lines.append(f"Base layer '{base_layer_name}' / field '{base_field_name}': {len(base_vals)} unique values")
         if base_missing:
             lines.append("❌ Missing in CSV (Base) (first 200):")
@@ -278,7 +306,7 @@ class NettoNullBilanz:
         if base_missing or plan_missing or bg_missing:
             raise ValueError(report)
 
-        return warnings, report
+        return warnings, report, factors_table_text
 
     # ------------------------------------------------------------------
     # Main execution
@@ -320,7 +348,7 @@ class NettoNullBilanz:
         # Validation
         self.dlg.append_log("Validating inputs…")
         try:
-            warnings, validation_text = self._validate_matching(
+            warnings, validation_text, factors_table_text = self._validate_matching(
                 base_layer_name=base_layer_name,
                 base_field_name=base_field_name,
                 plan_layer_name=plan_layer_name,
@@ -343,6 +371,8 @@ class NettoNullBilanz:
             msg.setDetailedText(str(e))
             msg.exec_()
 
+            factors_table_text = ""
+
             log_text = self._make_log_text(
                 project_title=project_title, project_path=project_path, output_dir=output_dir,
                 output_csv_path=output_csv_path, factors_csv=factors_csv,
@@ -350,7 +380,8 @@ class NettoNullBilanz:
                 plan_layer_name=plan_layer_name, plan_field_name=plan_field_name,
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
-                validation_text=str(e), warnings=[], status="validation_failed", error=str(e)
+                validation_text=str(e), warnings=[], status="validation_failed", error=str(e),
+                factors_table_text=factors_table_text,
             )
             self._write_log(log_path, log_text, overwrite=True)
             return
@@ -411,6 +442,7 @@ class NettoNullBilanz:
                 building_green_field_name=building_green_field_name,
                 validation_text=validation_text, warnings=warnings, status="success",
                 results_info={**results_info, "total_balance_m2": total_balance},
+                factors_table_text=factors_table_text,
             )
             self._write_log(log_path, log_text, overwrite=True)
 
@@ -428,6 +460,7 @@ class NettoNullBilanz:
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
                 validation_text="", warnings=warnings, status="failed", error=str(e),
+                factors_table_text=factors_table_text,
             )
             try:
                 self._write_log(log_path, log_text, overwrite=True)
