@@ -62,4 +62,4 @@ def waterfall(df, project_title, output_dir):
         margin=dict(l=60, r=40, t=80, b=80)
     )
     print("Plotting Waterfall Diagramm.")
-    plotly.offline.plot(fig, filename=os.path.join(output_dir, 'waterfall_plot.html'), auto_open=False)
+    plotly.offline.plot(fig, filename=os.path.join(output_dir, project_title + '_results_diagramm.html'), auto_open=False)
