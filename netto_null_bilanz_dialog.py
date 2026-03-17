@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from qgis.PyQt import QtWidgets, QtCore
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsMapLayerProxyModel
+from qgis.gui import QgsMapLayerComboBox
 import csv
 import os
 
@@ -36,7 +37,9 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         project_layout = QtWidgets.QFormLayout(project_box)
 
         self.project_title_edit = QtWidgets.QLineEdit()
-        self.project_title_edit.setPlaceholderText("z.B. Mömax (wird für Ergebnisordner/Dateien verwendet)")
+        self.project_title_edit.setPlaceholderText(
+            "z.B. Mömax (wird für Ergebnisordner/Dateien verwendet)"
+        )
 
         project_layout.addRow("Projektname:", self.project_title_edit)
         main_layout.addWidget(project_box)
@@ -70,28 +73,31 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         form_box = QtWidgets.QGroupBox("Layer & Felder")
         form_layout = QtWidgets.QFormLayout(form_box)
 
-        # Base Layer + Field
-        self.base_layer_combo = QtWidgets.QComboBox()
-        self.populate_layers(self.base_layer_combo)
-        self.base_layer_combo.currentIndexChanged.connect(self.update_base_field_list)
+        # Before Layer + Field (nur Polygon-Layer)
+        self.base_layer_combo = QgsMapLayerComboBox()
+        self.base_layer_combo.setProject(QgsProject.instance())
+        self.base_layer_combo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.base_layer_combo.layerChanged.connect(self.update_base_field_list)
 
         self.base_field_combo = QtWidgets.QComboBox()
         self.update_base_field_list()
 
-        # Plan Layer + Field
-        self.plan_layer_combo = QtWidgets.QComboBox()
-        self.populate_layers(self.plan_layer_combo)
-        self.plan_layer_combo.currentIndexChanged.connect(self.update_plan_field_list)
+        # After Layer + Field (nur Polygon-Layer)
+        self.plan_layer_combo = QgsMapLayerComboBox()
+        self.plan_layer_combo.setProject(QgsProject.instance())
+        self.plan_layer_combo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.plan_layer_combo.layerChanged.connect(self.update_plan_field_list)
 
         self.plan_field_combo = QtWidgets.QComboBox()
         self.update_plan_field_list()
 
         # Optional Building Green Layer + Field
-        self.building_green_layer_combo = QtWidgets.QComboBox()
-        self.populate_layers(self.building_green_layer_combo)
-        self.building_green_layer_combo.insertItem(0, "(None)")
-        self.building_green_layer_combo.setCurrentIndex(0)
-        self.building_green_layer_combo.currentIndexChanged.connect(self.update_building_green_field_list)
+        # -> absichtlich OHNE Polygon-Filter, damit auch Excel/CSV/Tabellen sichtbar sind
+        self.building_green_layer_combo = QgsMapLayerComboBox()
+        self.building_green_layer_combo.setProject(QgsProject.instance())
+        self.building_green_layer_combo.setAllowEmptyLayer(True)
+        self.building_green_layer_combo.setCurrentIndex(-1)
+        self.building_green_layer_combo.layerChanged.connect(self.update_building_green_field_list)
 
         self.building_green_field_combo = QtWidgets.QComboBox()
         self.update_building_green_field_list()
@@ -197,27 +203,29 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
             self.beschreibung_values = []
             self.append_log(f"⚠ Factors CSV not found: {path}")
             return
+
         try:
             with open(path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter=";")
-                self.beschreibung_values = sorted({r.get("Description", "").strip() for r in reader if r.get("Description")})
+                self.beschreibung_values = sorted(
+                    {
+                        r.get("Description", "").strip()
+                        for r in reader
+                        if r.get("Description")
+                    }
+                )
         except Exception as e:
             self.beschreibung_values = []
             self.append_log(f"⚠ Failed to load factors CSV: {e}")
 
     # ---------------------------------------------------------
-    # Layer/field combobox helpers
+    # Layer helpers
     # ---------------------------------------------------------
-    def populate_layers(self, combo: QtWidgets.QComboBox):
-        combo.clear()
-        for layer in QgsProject.instance().mapLayers().values():
-            combo.addItem(layer.name())
-        if combo.count() > 0:
-            combo.setCurrentIndex(0)
-
-    def get_layer_by_name(self, name: str):
-        layers = QgsProject.instance().mapLayersByName(name)
-        return layers[0] if layers else None
+    def _current_layer(self, combo):
+        try:
+            return combo.currentLayer()
+        except Exception:
+            return None
 
     def _set_default_field(self, combo: QtWidgets.QComboBox, default_name: str):
         idx = combo.findText(default_name)
@@ -230,30 +238,36 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         self.base_field_combo.blockSignals(True)
         current = self.base_field_combo.currentText()
         self.base_field_combo.clear()
-        layer = self.get_layer_by_name(self.base_layer_combo.currentText())
+
+        layer = self._current_layer(self.base_layer_combo)
         if layer:
             for f in layer.fields():
                 self.base_field_combo.addItem(f.name())
+
         idx = self.base_field_combo.findText(current)
         if idx >= 0:
             self.base_field_combo.setCurrentIndex(idx)
         else:
             self._set_default_field(self.base_field_combo, "Flächentyp")
+
         self.base_field_combo.blockSignals(False)
 
     def update_plan_field_list(self):
         self.plan_field_combo.blockSignals(True)
         current = self.plan_field_combo.currentText()
         self.plan_field_combo.clear()
-        layer = self.get_layer_by_name(self.plan_layer_combo.currentText())
+
+        layer = self._current_layer(self.plan_layer_combo)
         if layer:
             for f in layer.fields():
                 self.plan_field_combo.addItem(f.name())
+
         idx = self.plan_field_combo.findText(current)
         if idx >= 0:
             self.plan_field_combo.setCurrentIndex(idx)
         else:
             self._set_default_field(self.plan_field_combo, "Flächentyp")
+
         self.plan_field_combo.blockSignals(False)
 
     def update_building_green_field_list(self):
@@ -261,12 +275,10 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         current = self.building_green_field_combo.currentText()
         self.building_green_field_combo.clear()
 
-        layer_name = self.building_green_layer_combo.currentText()
-        if layer_name and layer_name != "(None)":
-            layer = self.get_layer_by_name(layer_name)
-            if layer:
-                for f in layer.fields():
-                    self.building_green_field_combo.addItem(f.name())
+        layer = self._current_layer(self.building_green_layer_combo)
+        if layer:
+            for f in layer.fields():
+                self.building_green_field_combo.addItem(f.name())
 
         idx = self.building_green_field_combo.findText(current)
         if idx >= 0:
@@ -310,10 +322,12 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
     # ---------------------------------------------------------
     def get_parameters(self):
         building_green = []
+
         for r in range(self.green_table.rowCount()):
             before_combo = self.green_table.cellWidget(r, 0)
             after_combo = self.green_table.cellWidget(r, 1)
             area_item = self.green_table.item(r, 2)
+
             try:
                 area_val = float(area_item.text()) if area_item else 0.0
             except ValueError:
@@ -325,20 +339,27 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
                 "Area": area_val
             })
 
-        building_green_layer_name = (
-            self.building_green_layer_combo.currentText()
-            if self.building_green_layer_combo.currentText() != "(None)"
-            else None
-        )
+        base_layer = self._current_layer(self.base_layer_combo)
+        plan_layer = self._current_layer(self.plan_layer_combo)
+        building_green_layer = self._current_layer(self.building_green_layer_combo)
 
         return {
             "project_title": self.project_title_edit.text().strip(),
-            "base_layer_name": self.base_layer_combo.currentText(),
+
+            # Namen für Kompatibilität mit bestehendem Code
+            "base_layer_name": base_layer.name() if base_layer else "",
             "base_field_name": self.base_field_combo.currentText(),
-            "plan_layer_name": self.plan_layer_combo.currentText(),
+
+            "plan_layer_name": plan_layer.name() if plan_layer else "",
             "plan_field_name": self.plan_field_combo.currentText(),
+
             "building_green": building_green,
-            "building_green_layer_name": building_green_layer_name,
+            "building_green_layer_name": building_green_layer.name() if building_green_layer else None,
             "building_green_field_name": self.building_green_field_combo.currentText(),
             "factors_csv": self._factors_csv_path,
+
+            # optional robuster für spätere Weiterentwicklung
+            "base_layer": base_layer,
+            "plan_layer": plan_layer,
+            "building_green_layer": building_green_layer,
         }
