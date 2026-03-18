@@ -23,7 +23,7 @@ def sanitize_project_name(name: str) -> str:
     if not name:
         return ""
     name = re.sub(r"\s+", "_", name, flags=re.UNICODE)          # whitespace -> _
-    name = re.sub(r'[<>:"/\\\\|?*]', "", name)              # Windows forbidden
+    name = re.sub(r'[<>:"/\\\\|?*]', "", name)                  # Windows forbidden
     name = "".join(ch for ch in name if ch >= " " and ch != "\x7f")  # control chars
     name = name.rstrip(" .")                                    # trailing dot/space
     return name
@@ -106,10 +106,62 @@ class NettoNullBilanz:
         with open(log_path, mode=mode, encoding="utf-8-sig", newline="") as f:
             f.write(normalized)
 
+    def _format_used_factors(self, factors_csv: str, df: pd.DataFrame) -> str:
+        """
+        Build a log section with only the factor rows actually used
+        in the calculation (Before/After categories from results df).
+        """
+        if df is None or df.empty:
+            return "  (no result rows)\n"
+
+        if not factors_csv:
+            return "  Factors CSV path is empty\n"
+
+        if not os.path.exists(factors_csv):
+            return f"  Factors CSV not found: {factors_csv}\n"
+
+        try:
+            df_f = pd.read_csv(factors_csv, sep=";")
+            df_f.columns = [c.strip() for c in df_f.columns]
+
+            if not {"Description", "BFF_2020"}.issubset(df_f.columns):
+                return "  Factor CSV missing required columns: Description, BFF_2020\n"
+
+            used_values = set()
+
+            if "Before" in df.columns:
+                used_values.update(
+                    str(v).strip() for v in df["Before"].dropna().unique() if str(v).strip()
+                )
+            if "After" in df.columns:
+                used_values.update(
+                    str(v).strip() for v in df["After"].dropna().unique() if str(v).strip()
+                )
+
+            if not used_values:
+                return "  (no used categories found in result dataframe)\n"
+
+            df_f["Description_norm"] = df_f["Description"].astype(str).str.strip()
+            df_used = df_f[df_f["Description_norm"].isin(used_values)].copy()
+
+            if df_used.empty:
+                return "  (no matching factor rows found)\n"
+
+            df_used = df_used.sort_values("Description_norm")
+
+            lines = []
+            for _, row in df_used.iterrows():
+                lines.append(f"  {row['Description_norm']}: {row['BFF_2020']}")
+            return "\n".join(lines) + "\n"
+
+        except Exception as e:
+            return f"  Failed to read used factors: {e}\n"
+
     def _make_log_text(self, *, project_title, project_path, output_dir, output_csv_path, factors_csv,
                        base_layer_name, base_field_name, plan_layer_name, plan_field_name,
                        building_green_layer_name, building_green_field_name,
-                       validation_text, warnings, status, results_info=None, error=None) -> str:
+                       validation_text, warnings, status, results_info=None, error=None,
+                       used_factors_text=None) -> str:
         lines = []
         lines.append("========================================")
         lines.append("Blue-Green Infrastructure Balance – Log")
@@ -152,6 +204,13 @@ class NettoNullBilanz:
             lines.append("----------------------------------------")
             for k, v in results_info.items():
                 lines.append(f"  {k}: {v}")
+            lines.append("")
+
+        if used_factors_text:
+            lines.append("----------------------------------------")
+            lines.append("Factors used:")
+            lines.append("----------------------------------------")
+            lines.append(used_factors_text.rstrip())
             lines.append("")
 
         if error:
@@ -238,20 +297,20 @@ class NettoNullBilanz:
 
         lines.append(f"Base layer '{base_layer_name}' / field '{base_field_name}': {len(base_vals)} unique values")
         if base_missing:
-            lines.append("❌ Missing in CSV (Base) (first 200):")
-            for v in base_missing[:200]:
+            lines.append("❌ Values from base layer not found in CSV-factor table:")
+            for v in base_missing:
                 lines.append(f"  - {v}")
         else:
-            lines.append("✅ All Base values found in CSV.")
+            lines.append("✅ All base layer values found in CSV factor table.")
         lines.append("")
 
         lines.append(f"Plan layer '{plan_layer_name}' / field '{plan_field_name}': {len(plan_vals)} unique values")
         if plan_missing:
-            lines.append("❌ Missing in CSV (Plan) (first 200):")
-            for v in plan_missing[:200]:
+            lines.append("❌ Values from plan layer not found in CSV-factor table:")
+            for v in plan_missing:
                 lines.append(f"  - {v}")
         else:
-            lines.append("✅ All Plan values found in CSV.")
+            lines.append("✅ All plan layer values found in CSV factor table.")
         lines.append("")
 
         if bg_used:
@@ -261,15 +320,15 @@ class NettoNullBilanz:
                 for v in bg_missing[:200]:
                     lines.append(f"  - {v}")
             else:
-                lines.append("✅ All Building-green values found in CSV.")
+                lines.append("✅ All measures values found in CSV factor table.")
             lines.append("")
         else:
             lines.append("Building-green: (not used)")
             lines.append("")
 
         if unused:
-            lines.append("⚠ CSV entries unused (first 200):")
-            for v in unused[:200]:
+            lines.append("⚠ CSV factor entries unused:")
+            for v in unused:
                 lines.append(f"  - {v}")
             lines.append("")
 
@@ -309,8 +368,11 @@ class NettoNullBilanz:
         log_path = os.path.join(output_dir, f"{project_title}__bgig_log.txt")
 
         if not base_layer_name or not base_field_name or not plan_layer_name or not plan_field_name:
-            QMessageBox.warning(None, "Missing Input",
-                                "Please select *before layer/field* and *after layer/field*.")
+            QMessageBox.warning(
+                None,
+                "Missing Input",
+                "Please select *before layer/field* and *after layer/field*."
+            )
             return
 
         self.dlg.append_log(f"Projekt: {project_title}")
@@ -344,13 +406,22 @@ class NettoNullBilanz:
             msg.exec_()
 
             log_text = self._make_log_text(
-                project_title=project_title, project_path=project_path, output_dir=output_dir,
-                output_csv_path=output_csv_path, factors_csv=factors_csv,
-                base_layer_name=base_layer_name, base_field_name=base_field_name,
-                plan_layer_name=plan_layer_name, plan_field_name=plan_field_name,
+                project_title=project_title,
+                project_path=project_path,
+                output_dir=output_dir,
+                output_csv_path=output_csv_path,
+                factors_csv=factors_csv,
+                base_layer_name=base_layer_name,
+                base_field_name=base_field_name,
+                plan_layer_name=plan_layer_name,
+                plan_field_name=plan_field_name,
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
-                validation_text=str(e), warnings=[], status="validation_failed", error=str(e)
+                validation_text=str(e),
+                warnings=[],
+                status="validation_failed",
+                error=str(e),
+                used_factors_text=None,
             )
             self._write_log(log_path, log_text, overwrite=True)
             return
@@ -375,7 +446,6 @@ class NettoNullBilanz:
             )
 
             try:
-                # repo's plotting signature appears to be waterfall(df, project_title, out_dir)
                 plotting.waterfall(df, project_title, output_dir)
                 plotting.waterfall_short(df, project_title, output_dir)
                 plotting.sankey_plot(df, project_title, output_dir)
@@ -386,15 +456,12 @@ class NettoNullBilanz:
 
             self.dlg.append_log("")
             self.dlg.append_log("✅ Done.")
-            self.dlg.append_log(f"Total balance: {results_info.get('Total balance', '')}")
-            self.dlg.append_log(f"Results path: {results_info.get('Results path', '')}")
 
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setWindowTitle("Success")
             msg.setTextFormat(Qt.PlainText)
             msg.setText("✅ Results exported successfully!")
-            msg.setInformativeText("\n".join([f"{k}: {v}" for k, v in results_info.items()]))
             msg.setDetailedText(validation_text)
             msg.exec_()
 
@@ -404,15 +471,25 @@ class NettoNullBilanz:
             except Exception:
                 total_balance = None
 
+            used_factors_text = self._format_used_factors(factors_csv, df)
+
             log_text = self._make_log_text(
-                project_title=project_title, project_path=project_path, output_dir=output_dir,
-                output_csv_path=output_csv_path, factors_csv=factors_csv,
-                base_layer_name=base_layer_name, base_field_name=base_field_name,
-                plan_layer_name=plan_layer_name, plan_field_name=plan_field_name,
+                project_title=project_title,
+                project_path=project_path,
+                output_dir=output_dir,
+                output_csv_path=output_csv_path,
+                factors_csv=factors_csv,
+                base_layer_name=base_layer_name,
+                base_field_name=base_field_name,
+                plan_layer_name=plan_layer_name,
+                plan_field_name=plan_field_name,
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
-                validation_text=validation_text, warnings=warnings, status="success",
+                validation_text=validation_text,
+                warnings=warnings,
+                status="success",
                 results_info={**results_info, "total_balance_m2": total_balance},
+                used_factors_text=used_factors_text,
             )
             self._write_log(log_path, log_text, overwrite=True)
 
@@ -423,13 +500,22 @@ class NettoNullBilanz:
             QMessageBox.critical(None, "Error", f"❌ {str(e)}")
 
             log_text = self._make_log_text(
-                project_title=project_title, project_path=project_path, output_dir=output_dir,
-                output_csv_path=output_csv_path, factors_csv=factors_csv,
-                base_layer_name=base_layer_name, base_field_name=base_field_name,
-                plan_layer_name=plan_layer_name, plan_field_name=plan_field_name,
+                project_title=project_title,
+                project_path=project_path,
+                output_dir=output_dir,
+                output_csv_path=output_csv_path,
+                factors_csv=factors_csv,
+                base_layer_name=base_layer_name,
+                base_field_name=base_field_name,
+                plan_layer_name=plan_layer_name,
+                plan_field_name=plan_field_name,
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
-                validation_text="", warnings=warnings, status="failed", error=str(e),
+                validation_text="",
+                warnings=warnings,
+                status="failed",
+                error=str(e),
+                used_factors_text=None,
             )
             try:
                 self._write_log(log_path, log_text, overwrite=True)
