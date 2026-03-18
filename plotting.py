@@ -96,7 +96,7 @@ def unique_labels(labels):
 
 def build_transition_label(before, after):
     # kompakt, aber eindeutig genug
-    return f"{short_label(before)} → {short_label(after)})"
+    return f"{short_label(before)} → {short_label(after)}"
 
 
 def apply_layout(fig, title, xaxis_title="", yaxis_title="", height=760):
