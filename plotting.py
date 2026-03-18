@@ -4,133 +4,291 @@ import plotly
 import plotly.graph_objects as go
 
 
+# ============================================================
+# SOLID / CLEAN DESIGN
+# ============================================================
+COLORS = {
+    "bg": "#FFFFFF",
+    "paper": "#FFFFFF",
+    "grid": "#E5E7EB",
+    "text": "#1F2937",
+    "muted": "#6B7280",
+    "line": "#9CA3AF",
+
+    "pos": "#6FAFC7",          # heller / lebendiger
+    "neg": "#A7B1BF",          # ruhig neutral
+    "total_pos": "#3E6676",    # dunkleres Petrol
+    "total_neg": "#7C4F4F",    # nur falls net total negativ ist
+    "highlight": "rgba(62,102,118,0.05)",
+
+    "node_green": "#79B7CC",
+    "node_grey": "#B6BFCA",
+    "node_blue": "#5E7D8A",
+
+    "link_pos": "rgba(111,175,199,0.38)",
+    "link_neg": "rgba(167,177,191,0.28)",
+    "link_neutral": "rgba(182,191,202,0.20)",
+    "link_unknown": "rgba(94,125,138,0.16)",
+}
+
+
+# ============================================================
+# LABELS / FACTORS
+# ============================================================
+SHORT_LABELS = {
+    "Vegetationsfläche (hohes Grünvolumen)": "Vegetation hoch",
+    "Vegetationsfläche (mittleres Grünvolumen)": "Vegetation mittel",
+    "Vegetationsfläche (niedriges Grünvolumen)": "Vegetation niedrig",
+    "Versiegelte Belagsfläche": "Versiegelt",
+    "Teilversiegelte Belagsfläche": "Teilversiegelt",
+    "Durchlässige Belagsfläche": "Durchlässig",
+    "Begrünte Belagsfläche": "Begrünter Belag",
+    "Gründach (extensiv)": "Gründach ext.",
+    "Gründach (einfach-intensiv)": "Gründach int.",
+    "Vertikalbegrünung (bodengebunden)": "Vertikalgrün Boden",
+    "Vertikalbegrünung (wandgebunden-horizontal)": "Vertikalgrün horiz.",
+    "Vertikalbegrünung (wandgebunden-vertikal)": "Vertikalgrün vert.",
+}
+
+# Später am besten aus externer Tabelle / Config ziehen
+FACTOR_LABELS = {
+    "Vegetationsfläche (hohes Grünvolumen)": 1.0,
+    "Vegetationsfläche (mittleres Grünvolumen)": 0.75,
+    "Vegetationsfläche (niedriges Grünvolumen)": 0.5,
+    "Versiegelte Belagsfläche": 0.0,
+    "Teilversiegelte Belagsfläche": 0.1,
+    "Durchlässige Belagsfläche": 0.2,
+    "Begrünte Belagsfläche": 0.4,
+    "Gründach (extensiv)": 0.4,
+    "Gründach (einfach-intensiv)": 0.7,
+    "Vertikalbegrünung (bodengebunden)": 0.5,
+    "Vertikalbegrünung (wandgebunden-horizontal)": 0.7,
+    "Vertikalbegrünung (wandgebunden-vertikal)": 0.7,
+}
+
+
+def short_label(label):
+    return SHORT_LABELS.get(label, str(label))
+
+
+def factor_value(label):
+    return FACTOR_LABELS.get(label, None)
+
+
+def factor_label(label):
+    val = factor_value(label)
+    if val is None:
+        return "?"
+    return f"{val:g}"
+
+
+def unique_labels(labels):
+    counts = {}
+    result = []
+    for label in labels:
+        counts[label] = counts.get(label, 0) + 1
+        if counts[label] == 1:
+            result.append(label)
+        else:
+            result.append(f"{label} ·{counts[label]}")
+    return result
+
+
+def build_transition_label(before, after):
+    # kompakt, aber eindeutig genug
+    return f"{short_label(before)} → {short_label(after)})"
+
+
+def apply_layout(fig, title, xaxis_title="", yaxis_title="", height=760):
+    fig.update_layout(
+        title=dict(
+            text=title,
+            x=0.01,
+            xanchor="left",
+            font=dict(size=22, color=COLORS["text"])
+        ),
+        paper_bgcolor=COLORS["paper"],
+        plot_bgcolor=COLORS["bg"],
+        font=dict(
+            family="Inter, Arial, Helvetica, sans-serif",
+            size=13,
+            color=COLORS["text"]
+        ),
+        margin=dict(l=70, r=30, t=85, b=120),
+        height=height,
+        showlegend=False,
+        hoverlabel=dict(
+            bgcolor="#FFFFFF",
+            bordercolor="#D1D5DB",
+            font=dict(
+                family="Inter, Arial, sans-serif",
+                size=12,
+                color="#111827"
+            ),
+            align="left"
+        ),
+        xaxis=dict(
+            title=xaxis_title,
+            showgrid=False,
+            zeroline=False,
+            showline=False,
+            tickfont=dict(size=11, color=COLORS["muted"]),
+            title_font=dict(size=12, color=COLORS["muted"]),
+            automargin=True
+        ),
+        yaxis=dict(
+            title=yaxis_title,
+            showgrid=True,
+            gridcolor=COLORS["grid"],
+            gridwidth=0.8,
+            zeroline=False,
+            showline=False,
+            tickfont=dict(size=11, color=COLORS["muted"]),
+            title_font=dict(size=12, color=COLORS["muted"])
+        )
+    )
+
+
+# ============================================================
+# WATERFALL
+# ============================================================
 def waterfall(df, project_title, output_dir):
     df = df[df["BFF_Area"] != 0].copy()
 
-    # --- Create label "Before → After" ---
-    df["Transition"] = df["Before"] + " → " + df["After"]
+    # Sort by absolute contribution
+    df = df.reindex(df["BFF_Area"].abs().sort_values(ascending=False).index).reset_index(drop=True)
 
-    # --- Sort by BFF_Area ---
-    df = df.sort_values(by="BFF_Area", ascending=False).reset_index(drop=True)
+    # compact x labels
+    df["XBase"] = df.apply(lambda r: build_transition_label(r["Before"], r["After"]), axis=1)
+    df["XLabel"] = unique_labels(df["XBase"].tolist())
 
-    # --- Compute Net-BGI Balance ---
+    # full hover
+    df["HoverLabel"] = df.apply(
+        lambda r: (
+            f"<b>{r['Before']} → {r['After']}</b><br>"
+            f"Before factor: {factor_label(r['Before'])}<br>"
+            f"After factor: {factor_label(r['After'])}<br>"
+            f"Balance contribution: {r['BFF_Area']:.1f}"
+        ),
+        axis=1
+    )
+
     net_balance = df["BFF_Area"].sum()
 
-    # --- Append total bar for Net-BGI Balance ---
     df_total = pd.DataFrame({
-        "Transition": ["Net-BGI Balance"],
-        "BFF_Area": [net_balance]
+        "XLabel": ["Net Balance"],
+        "BFF_Area": [net_balance],
+        "HoverLabel": [f"<b>Net Balance</b><br>Area: {net_balance:.1f}"]
     })
 
-    df_final = pd.concat([df, df_total], ignore_index=True)
+    df_plot = pd.concat(
+        [df[["XLabel", "BFF_Area", "HoverLabel"]], df_total],
+        ignore_index=True
+    )
 
-    total_color = "#5ECBC8" if net_balance >= 0 else "#CD4C46"
-    total_idx = len(df_final) - 1
+    total_idx = len(df_plot) - 1
+    total_color = COLORS["total_pos"] if net_balance >= 0 else COLORS["total_neg"]
 
-    # --- Plotly Waterfall ---
     fig = go.Figure(go.Waterfall(
-        name="BFF_Area",
         orientation="v",
-        x=df_final["Transition"],
-        y=df_final["BFF_Area"],
-        measure=["relative"] * (len(df_final) - 1) + ["total"],
-        connector={"line": {"color": "black", "width": 1, "dash": "dot"}},
-        decreasing={"marker": {"color": "#ECC846"}},
-        increasing={"marker": {"color": "#4A588A"}},
+        x=df_plot["XLabel"],
+        y=df_plot["BFF_Area"],
+        measure=["relative"] * (len(df_plot) - 1) + ["total"],
+        connector={
+            "line": {"color": COLORS["line"], "width": 0.8, "dash": "dot"}
+        },
+        increasing={"marker": {"color": COLORS["pos"]}},
+        decreasing={"marker": {"color": COLORS["neg"]}},
         totals={"marker": {"color": total_color}},
-        text=[f"{v:.1f}" for v in df_final["BFF_Area"]],
+        text=[f"{v:.1f}" for v in df_plot["BFF_Area"]],
         textposition="outside",
-        hovertemplate="Transition: %{x}<br>Area: %{y:.1f}<extra></extra>"
+        textfont=dict(size=11, color=COLORS["text"]),
+        customdata=df_plot["HoverLabel"],
+        hovertemplate="%{customdata}<extra></extra>"
     ))
 
-    # --- Zero line ---
     fig.add_shape(
         type="line",
         x0=-0.5,
-        x1=len(df_final) - 0.5,
+        x1=len(df_plot) - 0.5,
         y0=0,
         y1=0,
-        line=dict(color="black", width=1, dash="dash")
+        line=dict(color=COLORS["line"], width=1.0, dash="dash")
     )
 
-    # --- Vertical separator before total bar ---
-    fig.add_shape(
-        type="line",
-        x0=total_idx - 0.5,
-        x1=total_idx - 0.5,
-        y0=min(df_final["BFF_Area"].min(), net_balance) * 1.15,
-        y1=max(df_final["BFF_Area"].max(), net_balance) * 1.15,
-        line=dict(color="black", width=1.5, dash="dot")
-    )
-
-    # --- Optional subtle background for total area ---
     fig.add_vrect(
         x0=total_idx - 0.5,
         x1=total_idx + 0.5,
-        fillcolor="lightgrey",
-        opacity=0.08,
+        fillcolor=COLORS["highlight"],
+        opacity=1,
         line_width=0
     )
 
-    # --- Annotation above total bar ---
     fig.add_annotation(
         x=total_idx,
         y=net_balance,
-        text="Final Balance",
+        text="Final balance",
         showarrow=False,
-        yshift=25 if net_balance >= 0 else -25,
-        font=dict(size=12, color="black")
+        yshift=22 if net_balance >= 0 else -22,
+        font=dict(size=11, color=COLORS["muted"])
     )
 
-    # --- Layout ---
-    fig.update_layout(
-        title="Blue-Green-Infrastructure Balance " + project_title,
-        xaxis_title="Transition (Before → After)",
+    apply_layout(
+        fig,
+        title=f"Blue–Green Infrastructure Balance — {project_title}",
+        xaxis_title="Transformation",
         yaxis_title="Area",
-        showlegend=False,
-        xaxis=dict(tickangle=40),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font=dict(size=13),
-        margin=dict(l=60, r=40, t=80, b=80)
+        height=max(760, 520 + len(df_plot) * 10)
     )
+
+    fig.update_xaxes(tickangle=-18)
 
     print("Plotting Waterfall Diagram.")
     plotly.offline.plot(
         fig,
-        filename=os.path.join(output_dir, "waterfall_plot.html"),
+        filename=os.path.join(output_dir, "plot_waterfall_" + project_title + ".html" ),
         auto_open=False
     )
 
 
+# ============================================================
+# WATERFALL SHORT
+# ============================================================
 def waterfall_short(df, project_title, output_dir):
+    df = df[df["BFF_Area"] != 0].copy()
 
-    df = df[df["BFF_Area"] != 0]
-
-    # --- Split positive and negative ---
-    positive = df[df["BFF_Area"] > 0]["BFF_Area"].sum()
-    negative = df[df["BFF_Area"] < 0]["BFF_Area"].sum()
-
+    positive = df.loc[df["BFF_Area"] > 0, "BFF_Area"].sum()
+    negative = df.loc[df["BFF_Area"] < 0, "BFF_Area"].sum()
     net_balance = positive + negative
 
     df_short = pd.DataFrame({
-        "Category": ["Blue-Green +", "Blue-Green -", "Netto Balance"],
-        "Value": [positive, negative, net_balance]
+        "Category": ["Gain", "Loss", "Net Balance"],
+        "Value": [positive, negative, net_balance],
+        "Hover": [
+            f"<b>Positive balance contributions</b><br>Area: {positive:.1f}",
+            f"<b>Negative balance contributions</b><br>Area: {negative:.1f}",
+            f"<b>Net Balance</b><br>Area: {net_balance:.1f}",
+        ]
     })
 
-    total_color = "#5ECBC8" if net_balance >= 0 else "#CD4C46"
+    total_color = COLORS["total_pos"] if net_balance >= 0 else COLORS["total_neg"]
 
     fig = go.Figure(go.Waterfall(
         orientation="v",
         x=df_short["Category"],
         y=df_short["Value"],
         measure=["relative", "relative", "total"],
-        connector={"line": {"color": "black", "width": 1, "dash": "dot"}},
-        increasing={"marker": {"color": "#4A588A"}},
-        decreasing={"marker": {"color": "#ECC846"}},
+        connector={
+            "line": {"color": COLORS["line"], "width": 0.8, "dash": "dot"}
+        },
+        increasing={"marker": {"color": COLORS["pos"]}},
+        decreasing={"marker": {"color": COLORS["neg"]}},
         totals={"marker": {"color": total_color}},
         text=[f"{v:.1f}" for v in df_short["Value"]],
-        textposition="outside"
+        textposition="outside",
+        textfont=dict(size=12, color=COLORS["text"]),
+        customdata=df_short["Hover"],
+        hovertemplate="%{customdata}<extra></extra>"
     ))
 
     fig.add_shape(
@@ -139,58 +297,55 @@ def waterfall_short(df, project_title, output_dir):
         x1=2.5,
         y0=0,
         y1=0,
-        line=dict(color="black", width=1, dash="dash")
+        line=dict(color=COLORS["line"], width=1.0, dash="dash")
     )
 
-    fig.update_layout(
-        title="Blue-Green-Infrastructure Balance (Summary) " + project_title,
+    fig.add_vrect(
+        x0=1.5,
+        x1=2.5,
+        fillcolor=COLORS["highlight"],
+        opacity=1,
+        line_width=0
+    )
+
+    apply_layout(
+        fig,
+        title=f"Blue–Green Infrastructure Balance — Summary — {project_title}",
         xaxis_title="Category",
         yaxis_title="Area",
-        showlegend=False,
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font=dict(size=13),
-        margin=dict(l=60, r=40, t=80, b=80)
+        height=620
     )
+
+    fig.update_xaxes(tickangle=0)
 
     print("Plotting Short Waterfall Diagram.")
     plotly.offline.plot(
         fig,
-        filename=os.path.join(output_dir, "waterfall_short.html"),
+        filename=os.path.join(output_dir, "plot_waterfall_short_" + project_title + ".html"),
         auto_open=False
     )
 
 
-import os
-import pandas as pd
-import plotly
-import plotly.graph_objects as go
-
-
+# ============================================================
+# SANKEY
+# ============================================================
 def sankey_plot(df, project_title, output_dir):
     df = df[df["BFF_Area"] != 0].copy()
 
-    # ------------------------------------------------------------------
-    # 1) Category scores (for testing: first value of your table)
-    # ------------------------------------------------------------------
-    category_score = {
-        "Vegetationsfläche (hohes Grünvolumen)": 1.0,
-        "Vegetationsfläche (mittleres Grünvolumen)": 0.75,
-        "Vegetationsfläche (niedriges Grünvolumen)": 0.5,
-        "Versiegelte Belagsfläche": 0.0,
-        "Teilversiegelte Belagsfläche": 0.1,
-        "Durchlässige Belagsfläche": 0.2,
-        "Begrünte Belagsfläche": 0.4,
-        "Gründach (extensiv)": 0.4,
-        "Gründach (einfach-intensiv)": 0.7,
-        "Vertikalbegrünung (bodengebunden)": 0.5,
-        "Vertikalbegrünung (wandgebunden-horizontal)": 0.7,
-        "Vertikalbegrünung (wandgebunden-vertikal)": 0.7,
-    }
+    # group transitions
+    df_grouped = (
+        df.groupby(["Before", "After"], as_index=False)["BFF_Area"]
+        .sum()
+    )
 
-    # ------------------------------------------------------------------
-    # 2) Node coloring by category type
-    # ------------------------------------------------------------------
+    # Sankey values as positive magnitudes
+    df_grouped["Flow_Area"] = df_grouped["BFF_Area"].abs()
+
+    # factors
+    df_grouped["BeforeScore"] = df_grouped["Before"].map(FACTOR_LABELS)
+    df_grouped["AfterScore"] = df_grouped["After"].map(FACTOR_LABELS)
+    df_grouped["DeltaScore"] = df_grouped["AfterScore"] - df_grouped["BeforeScore"]
+
     green_categories = {
         "Vegetationsfläche (hohes Grünvolumen)",
         "Vegetationsfläche (mittleres Grünvolumen)",
@@ -211,72 +366,52 @@ def sankey_plot(df, project_title, output_dir):
 
     def node_color(label):
         if label in green_categories:
-            return "#6FCF97"   # soft green
+            return COLORS["node_green"]
         elif label in grey_categories:
-            return "#9AA0A6"   # grey
-        return "#4A588A"       # fallback
-
-    # ------------------------------------------------------------------
-    # 3) Aggregate transitions
-    # ------------------------------------------------------------------
-    df_grouped = (
-        df.groupby(["Before", "After"], as_index=False)["BFF_Area"]
-        .sum()
-    )
-
-    # Sankey values must be positive magnitudes
-    df_grouped["Flow_Area"] = df_grouped["BFF_Area"].abs()
-
-    # ------------------------------------------------------------------
-    # 4) Improvement logic for link colors
-    # ------------------------------------------------------------------
-    df_grouped["BeforeScore"] = df_grouped["Before"].map(category_score)
-    df_grouped["AfterScore"] = df_grouped["After"].map(category_score)
-    df_grouped["DeltaScore"] = df_grouped["AfterScore"] - df_grouped["BeforeScore"]
+            return COLORS["node_grey"]
+        return COLORS["node_blue"]
 
     def link_color(delta):
         if pd.isna(delta):
-            return "rgba(120,120,120,0.35)"   # unknown
+            return COLORS["link_unknown"]
         elif delta > 0:
-            return "rgba(74,88,138,0.45)"     # improvement -> blue
+            return COLORS["link_pos"]
         elif delta < 0:
-            return "rgba(205,76,70,0.45)"     # worsening -> red
+            return COLORS["link_neg"]
         else:
-            return "rgba(160,160,160,0.35)"   # neutral
+            return COLORS["link_neutral"]
 
     df_grouped["LinkColor"] = df_grouped["DeltaScore"].apply(link_color)
 
-    # ------------------------------------------------------------------
-    # 5) Build nodes
-    # ------------------------------------------------------------------
     labels = list(pd.concat([df_grouped["Before"], df_grouped["After"]]).unique())
     label_to_index = {label: i for i, label in enumerate(labels)}
     node_colors = [node_color(label) for label in labels]
+    short_labels = [short_label(l) for l in labels]
 
-    # ------------------------------------------------------------------
-    # 6) Hover text
-    # ------------------------------------------------------------------
     hover_text = []
     for _, row in df_grouped.iterrows():
+        before_score = "?" if pd.isna(row["BeforeScore"]) else f"{row['BeforeScore']:.2f}"
+        after_score = "?" if pd.isna(row["AfterScore"]) else f"{row['AfterScore']:.2f}"
+        delta_score = "?" if pd.isna(row["DeltaScore"]) else f"{row['DeltaScore']:.2f}"
+
         hover_text.append(
-            f"Transition: {row['Before']} → {row['After']}<br>"
+            f"<b>{row['Before']} → {row['After']}</b><br>"
             f"Area: {row['Flow_Area']:.1f}<br>"
-            f"Before score: {row['BeforeScore']:.2f}<br>"
-            f"After score: {row['AfterScore']:.2f}<br>"
-            f"Delta: {row['DeltaScore']:.2f}"
+            f"Before factor: {before_score}<br>"
+            f"After factor: {after_score}<br>"
+            f"Delta: {delta_score}"
         )
 
-    # ------------------------------------------------------------------
-    # 7) Figure
-    # ------------------------------------------------------------------
     fig = go.Figure(go.Sankey(
         arrangement="snap",
         node=dict(
-            pad=20,
-            thickness=22,
-            line=dict(color="black", width=0.4),
-            label=labels,
-            color=node_colors
+            pad=22,
+            thickness=18,
+            line=dict(color="rgba(100,116,139,0.18)", width=0.6),
+            label=short_labels,
+            color=node_colors,
+            customdata=labels,
+            hovertemplate="<b>%{customdata}</b><extra></extra>"
         ),
         link=dict(
             source=df_grouped["Before"].map(label_to_index),
@@ -289,16 +424,36 @@ def sankey_plot(df, project_title, output_dir):
     ))
 
     fig.update_layout(
-        title="Blue-Green-Infrastructure Transitions " + project_title,
-        font=dict(size=13),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        margin=dict(l=40, r=40, t=80, b=40)
+        title=dict(
+            text=f"Blue–Green Infrastructure Transitions — {project_title}",
+            x=0.01,
+            xanchor="left",
+            font=dict(size=22, color=COLORS["text"])
+        ),
+        paper_bgcolor=COLORS["paper"],
+        plot_bgcolor=COLORS["bg"],
+        font=dict(
+            family="Inter, Arial, Helvetica, sans-serif",
+            size=13,
+            color=COLORS["text"]
+        ),
+        margin=dict(l=30, r=30, t=85, b=30),
+        height=760,
+        hoverlabel=dict(
+            bgcolor="#FFFFFF",
+            bordercolor="#D1D5DB",
+            font=dict(
+                family="Inter, Arial, sans-serif",
+                size=12,
+                color="#111827"
+            ),
+            align="left"
+        )
     )
 
     print("Plotting Sankey Diagram.")
     plotly.offline.plot(
         fig,
-        filename=os.path.join(output_dir, "sankey_plot.html"),
+        filename=os.path.join(output_dir, project_title + "plot_sankey_" + project_title + ".html"),
         auto_open=False
     )
