@@ -152,18 +152,64 @@ def apply_layout(fig, title, xaxis_title="", yaxis_title="", height=760):
 # ============================================================
 # WATERFALL
 # ============================================================
-def waterfall(df, project_title, output_dir):
+def waterfall(df, project_title, output_dir, min_share_of_max=0.01):
+    """
+    Waterfall plot with optional filtering of very small contributions.
+
+    Parameters
+    ----------
+    min_share_of_max : float or None
+        Relative threshold based on the largest absolute BFF_Area value.
+        Example: 0.02 means all transitions with abs(BFF_Area) < 0.2% of the
+        maximum absolute contribution are hidden.
+        Final Balance still uses the full unfiltered dataset.
+    """
     df = df[df["BFF_Area"] != 0].copy()
 
-    # Sort by absolute contribution
+    if df.empty:
+        print("No non-zero values for waterfall plot.")
+        return
+
+    # sort once for reference
     df = df.reindex(df["BFF_Area"].abs().sort_values(ascending=False).index).reset_index(drop=True)
 
+    # --------------------------------------------------------
+    # Final balance always from FULL dataset
+    # --------------------------------------------------------
+    net_balance = df["BFF_Area"].sum()
+
+    # --------------------------------------------------------
+    # Optional filtering of small displayed values
+    # --------------------------------------------------------
+    filtered_count = 0
+    threshold_value = None
+    original_count = len(df)
+
+    df_display = df.copy()
+
+    if min_share_of_max is not None and min_share_of_max > 0:
+        max_abs = df_display["BFF_Area"].abs().max()
+
+        if pd.notna(max_abs) and max_abs > 0:
+            threshold_value = max_abs * float(min_share_of_max)
+
+            mask_keep = df_display["BFF_Area"].abs() >= threshold_value
+            filtered_count = int((~mask_keep).sum())
+            df_display = df_display.loc[mask_keep].copy().reset_index(drop=True)
+
+    if df_display.empty:
+        print("All display values were filtered out in waterfall plot.")
+        return
+
     # compact x labels
-    df["XBase"] = df.apply(lambda r: build_transition_label(r["Before"], r["After"]), axis=1)
-    df["XLabel"] = unique_labels(df["XBase"].tolist())
+    df_display["XBase"] = df_display.apply(
+        lambda r: build_transition_label(r["Before"], r["After"]),
+        axis=1
+    )
+    df_display["XLabel"] = unique_labels(df_display["XBase"].tolist())
 
     # full hover
-    df["HoverLabel"] = df.apply(
+    df_display["HoverLabel"] = df_display.apply(
         lambda r: (
             f"<b>{r['Before']} → {r['After']}</b><br>"
             f"Before factor: {factor_label(r['Before'])}<br>"
@@ -173,16 +219,18 @@ def waterfall(df, project_title, output_dir):
         axis=1
     )
 
-    net_balance = df["BFF_Area"].sum()
-
     df_total = pd.DataFrame({
         "XLabel": ["Net Balance"],
         "BFF_Area": [net_balance],
-        "HoverLabel": [f"<b>Net Balance</b><br>Area: {net_balance:.1f}"]
+        "HoverLabel": [(
+            f"<b>Net Balance</b><br>"
+            f"Area: {net_balance:.1f}<br>"
+            f"Includes all transitions"
+        )]
     })
 
     df_plot = pd.concat(
-        [df[["XLabel", "BFF_Area", "HoverLabel"]], df_total],
+        [df_display[["XLabel", "BFF_Area", "HoverLabel"]], df_total],
         ignore_index=True
     )
 
@@ -243,10 +291,41 @@ def waterfall(df, project_title, output_dir):
 
     fig.update_xaxes(tickangle=-18)
 
+    # --------------------------------------------------------
+    # Info box about filtering
+    # Place it inside the plotting area, top-right
+    # --------------------------------------------------------
+    if filtered_count > 0 and threshold_value is not None:
+        shown_count = original_count - filtered_count
+
+        fig.add_annotation(
+            xref="paper",
+            yref="paper",
+            x=0.99,
+            y=0.02,
+            xanchor="right",
+            yanchor="bottom",
+            align="left",
+            showarrow=False,
+            text=(
+                f"{filtered_count} Note: small transitions hidden,"
+                f"<br><span style='font-size:11px'>"
+                f"Shown: {shown_count} of {original_count}"
+                f"<br>Threshold: {min_share_of_max:.1%} of max = {threshold_value:.0f}"
+                f"<br>Net balance includes all values."
+                f"</span>"
+            ),
+            font=dict(size=11, color=COLORS["muted"]),
+            bgcolor="rgba(255,255,255,0.92)",
+            bordercolor=COLORS["grid"],
+            borderwidth=1,
+            borderpad=6
+        )
+
     print("Plotting Waterfall Diagram.")
     plotly.offline.plot(
         fig,
-        filename=os.path.join(output_dir, "plot_waterfall_" + project_title + ".html" ),
+        filename=os.path.join(output_dir, "plot_waterfall_" + project_title + ".html"),
         auto_open=False
     )
 
