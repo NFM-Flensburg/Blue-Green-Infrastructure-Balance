@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Blue-Green Infrastructure Balance Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow-x: hidden;
+      background-color: #f8f9fa;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    body { display: flex; flex-direction: column; }
+    .main-content { flex: 1; padding: 2rem 1rem; }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      background: linear-gradient(90deg, #27485d, #d5e6f1);
+      color: white;
+      padding: 1rem 2rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    header .branding {
+      display:flex;
+      align-items:center;
+      gap:.9rem;
+    }
+
+    .brand-logo {
+      height: 72px;
+      width: auto;
+      object-fit: contain;
+      background: rgba(255,255,255,0.18);
+      border-radius: 14px;
+      padding: 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,.12);
+    }
+
+    @media (max-width: 768px) {
+      .brand-logo {
+        height: 48px;
+      }
+    }
+
+    header .branding h1 {
+      font-size: 1.8rem;
+      margin: 0;
+    }
+
+    header .branding h2 {
+      font-size: 1rem;
+      font-weight: normal;
+      margin: 0;
+      opacity: .92;
+    }
+
+    footer {
+      background: linear-gradient(90deg, #27485d, #d5e6f1);
+      color:white;
+      text-align:center;
+      padding:1rem;
+    }
+
+    .table-teal thead tr {
+      background: linear-gradient(90deg, #008080, #20B2AA);
+      color:#fff;
+    }
+
+    .table-teal tfoot tr {
+      background-color:#e0f7f7;
+      color:#004d4d;
+      font-weight:bold;
+    }
+
+    .table-teal tbody tr:nth-child(even) {
+      background-color:#f0fbfb;
+    }
+
+    .positive { color: #3E6676; font-weight: 700; }
+    .negative { color: #7C4F4F; font-weight: 700; }
+
+    .chart-card {
+      border:1px solid #e5e7eb;
+      border-radius:.9rem;
+      background:#fff;
+      box-shadow:0 2px 6px rgba(0,0,0,.05);
+      padding:.5rem;
+    }
+
+    .mini-label { font-size: .82rem; color: #6B7280; }
+
+    .sticky-tools {
+      position: sticky;
+      top: 86px;
+      z-index: 1000;
+      background: #f8f9fa;
+      padding-bottom: .5rem;
+    }
+
+    .factor-table input[type="number"] { min-width: 110px; }
+
+    .badge-soft {
+      background: rgba(62,102,118,0.08);
+      color: #3E6676;
+      border: 1px solid rgba(62,102,118,0.12);
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="branding">
+    <img
+      class="brand-logo"
+      src="https://github.com/NFM-Flensburg/Blue-Green-Infrastructure-Balance/blob/main/icons/icon.png?raw=true"
+      alt="Blue-Green Infrastructure Balance Logo"
+    >
+    <div>
+      <h1>Blue-Green Infrastructure Balance</h1>
+      <h2>Dashboard für QGIS Plugin Ergebnisanalyse</h2>
+    </div>
+  </div>
+</header>
+
+<div class="container-fluid main-content">
+  <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="analyse-tab" data-bs-toggle="tab" data-bs-target="#analyse" type="button" role="tab">Bilanz</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Faktoren & Maßnahmen</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="dashboardTabContent">
+    <div class="tab-pane fade show active" id="analyse" role="tabpanel">
+      <div class="sticky-tools">
+        <div class="row g-3 align-items-end mb-3">
+          <div class="col-lg-5">
+            <label for="csvUpload" class="form-label">Projekt-CSV hochladen</label>
+            <input type="file" id="csvUpload" class="form-control form-control-sm" accept=".csv" />
+            <div class="mini-label mt-1">Erwartete Spalten: Before, After, Area. Zusätzliche Spalten sind okay.</div>
+          </div>
+          <div class="col-lg-7 d-flex gap-2 flex-wrap">
+            <button id="addRowBtn" class="btn btn-primary btn-sm">Maßnahme hinzufügen</button>
+            <button id="scrollToChartBtn" class="btn btn-secondary btn-sm">Zum Diagramm scrollen</button>
+            <span class="badge rounded-pill badge-soft align-self-center" id="rowStats">0 Zeilen</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="projectInfo" class="alert alert-light d-none mt-2"></div>
+      <div id="errorBox" class="alert alert-danger d-none" role="alert"></div>
+
+      <div class="row g-3">
+        <div class="col-xl-5">
+          <div class="chart-card">
+            <h5 class="mb-3">Daten & Maßnahmen</h5>
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm table-teal align-middle" id="dataTable">
+                <thead><tr id="dataTableHeader"></tr></thead>
+                <tbody></tbody>
+                <tfoot>
+                  <tr>
+                    <th colspan="3" class="text-end">SUMME</th>
+                    <th id="sumCell"></th>
+                    <th></th>
+                    <th></th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-7">
+          <div class="chart-card">
+            <div id="waterfallContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="info" role="tabpanel">
+      <div class="d-flex gap-2 flex-wrap mb-3">
+        <button id="addFactorBtn" class="btn btn-primary btn-sm">Faktor hinzufügen</button>
+        <button id="resetFactorsBtn" class="btn btn-outline-secondary btn-sm">Standardfaktoren zurücksetzen</button>
+      </div>
+      <div class="mini-label mb-2">Die Werte hier steuern direkt die Dropdown-Auswahl, die Bilanz und den Plot. Änderungen wirken sofort.</div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-teal factor-table" id="factorsTable">
+          <thead>
+            <tr>
+              <th>Maßnahme / Faktor</th>
+              <th>BFF-Faktor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="mt-auto bg-light py-2 text-center">
+  <p>© Nachhaltiges Flächenmanagement</p>
+</footer>
+
+<script>
+const COLORS = {
+  bg: "#FFFFFF",
+  paper: "#FFFFFF",
+  grid: "#E5E7EB",
+  text: "#1F2937",
+  muted: "#6B7280",
+  line: "#9CA3AF",
+  pos: "#6FAFC7",
+  neg: "#A7B1BF",
+  total_pos: "#3E6676",
+  total_neg: "#7C4F4F",
+  highlight: "rgba(62,102,118,0.05)"
+};
+
+const SHORT_LABELS = {
+  "Vegetationsfläche (hohes Grünvolumen)": "Vegetation hoch",
+  "Vegetationsfläche (mittleres Grünvolumen)": "Vegetation mittel",
+  "Vegetationsfläche (niedriges Grünvolumen)": "Vegetation niedrig",
+  "Versiegelte Belagsfläche": "Versiegelt",
+  "Teilversiegelte Belagsfläche": "Teilversiegelt",
+  "Durchlässige Belagsfläche": "Durchlässig",
+  "Begrünte Belagsfläche": "Begrünter Belag",
+  "Gründach (extensiv)": "Gründach ext.",
+  "Gründach (einfach-intensiv)": "Gründach einf.-int.",
+  "Gründach (intensiv)": "Gründach intensiv",
+  "Vertikalbegrünung (bodengebunden)": "Vertikalgrün Boden",
+  "Vertikalbegrünung (wandgebunden-horizontal)": "Vertikalgrün horiz.",
+  "Vertikalbegrünung (wandgebunden-vertikal)": "Vertikalgrün vert.",
+  "Obeflächenversickerung": "Versickerung",
+  "Wasserfläche": "Wasserfläche",
+  "Uncovered": "Uncovered"
+};
+
+const DEFAULT_FACTORS = [
+  { beschreibung: "Vegetationsfläche (hohes Grünvolumen)", faktor: 1 },
+  { beschreibung: "Vegetationsfläche (niedriges Grünvolumen)", faktor: 0.5 },
+  { beschreibung: "Versiegelte Belagsfläche", faktor: 0 },
+  { beschreibung: "Teilversiegelte Belagsfläche", faktor: 0.1 },
+  { beschreibung: "Durchlässige Belagsfläche", faktor: 0.2 },
+  { beschreibung: "Begrünte Belagsfläche", faktor: 0.4 },
+  { beschreibung: "Gründach (extensiv)", faktor: 0.4 },
+  { beschreibung: "Gründach (einfach-intensiv)", faktor: 0.7 },
+  { beschreibung: "Gründach (intensiv)", faktor: 0.8 },
+  { beschreibung: "Vertikalbegrünung (bodengebunden)", faktor: 0.5 },
+  { beschreibung: "Vertikalbegrünung (wandgebunden-horizontal)", faktor: 0.7 },
+  { beschreibung: "Vertikalbegrünung (wandgebunden-vertikal)", faktor: 0.7 },
+  { beschreibung: "Obeflächenversickerung", faktor: 0.2 },
+  { beschreibung: "Wasserfläche", faktor: 0.5 },
+  { beschreibung: "Uncovered", faktor: 0 }
+];
+
+let backendData = JSON.parse(JSON.stringify(DEFAULT_FACTORS));
+let data = [];
+let baseName = "";
+
+const tbody = document.querySelector("#dataTable tbody");
+const sumCell = document.getElementById("sumCell");
+const errorBox = document.getElementById("errorBox");
+const factorsTbody = document.querySelector("#factorsTable tbody");
+const dataTableHeader = document.getElementById("dataTableHeader");
+const projectInfo = document.getElementById("projectInfo");
+const rowStats = document.getElementById("rowStats");
+
+function formatNumber(value) {
+  return Math.round(Number(value) || 0).toLocaleString("de-DE");
+}
+
+function shortLabel(label) {
+  return SHORT_LABELS[label] || String(label || "");
+}
+
+function buildTransitionLabel(before, after) {
+  return `${shortLabel(before)} → ${shortLabel(after)}`;
+}
+
+function uniqueLabels(labels) {
+  const counts = {};
+  return labels.map(label => {
+    counts[label] = (counts[label] || 0) + 1;
+    return counts[label] === 1 ? label : `${label} ·${counts[label]}`;
+  });
+}
+
+function normalizeKey(key) {
+  return String(key || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^\ufeff/, "")
+    .replace(/\s+/g, "_")
+    .replace(/[ä]/g, "ae")
+    .replace(/[ö]/g, "oe")
+    .replace(/[ü]/g, "ue")
+    .replace(/[ß]/g, "ss");
+}
+
+function parseNumber(value) {
+  if (value === null || value === undefined || value === "") return 0;
+  const cleaned = String(value).trim().replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function detectDelimiter(text) {
+  const firstLine = text.split(/\r?\n/)[0] || "";
+  return ((firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length) ? ";" : ",";
+}
+
+function showError(message) {
+  errorBox.classList.remove("d-none");
+  errorBox.innerHTML = message;
+}
+
+function hideError() {
+  errorBox.classList.add("d-none");
+  errorBox.innerHTML = "";
+}
+
+function findFactor(label) {
+  return backendData.find(d => d.beschreibung === label);
+}
+
+function ensureFactorExists(label, fallback = 0) {
+  const clean = String(label || "").trim();
+  if (!clean) return;
+  if (!findFactor(clean)) backendData.push({ beschreibung: clean, faktor: fallback });
+}
+
+function sortFactors() {
+  backendData.sort((a, b) => a.beschreibung.localeCompare(b.beschreibung, 'de'));
+}
+
+function calculateBilanz(row) {
+  const faktorVorher = findFactor(row.vorher)?.faktor ?? 0;
+  const faktorNachher = findFactor(row.nachher)?.faktor ?? 0;
+  return (faktorNachher - faktorVorher) * row.flaeche;
+}
+
+function sortDataLikePlot() {
+  data.sort((a, b) => Math.abs(calculateBilanz(b)) - Math.abs(calculateBilanz(a)));
+}
+
+function renderDynamicHeaders() {
+  dataTableHeader.innerHTML = `
+    <th>Vorher</th>
+    <th>Nachher / Maßnahme</th>
+    <th>Fläche</th>
+    <th>Bilanz</th>
+    <th>X</th>
+    <th>Check</th>
+  `;
+}
+
+function renderFactorsTable() {
+  sortFactors();
+  factorsTbody.innerHTML = "";
+
+  backendData.forEach((d, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="form-control form-control-sm factor-name" data-index="${index}" value="${escapeHtml(d.beschreibung)}"></td>
+      <td><input type="number" step="0.01" class="form-control form-control-sm factor-value" data-index="${index}" value="${d.faktor}"></td>
+      <td><button class="btn btn-outline-danger btn-sm delete-factor" data-index="${index}">x</button></td>
+    `;
+    factorsTbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('.factor-name').forEach(el => {
+    el.addEventListener('input', e => {
+      const idx = Number(e.target.dataset.index);
+      backendData[idx].beschreibung = e.target.value.trim();
+      renderTable();
+      recalculate();
+    });
+  });
+
+  document.querySelectorAll('.factor-value').forEach(el => {
+    el.addEventListener('input', e => {
+      const idx = Number(e.target.dataset.index);
+      backendData[idx].faktor = parseNumber(e.target.value);
+      recalculate();
+    });
+  });
+
+  document.querySelectorAll('.delete-factor').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = Number(e.target.dataset.index);
+      const factorName = backendData[idx]?.beschreibung;
+      backendData.splice(idx, 1);
+      data.forEach(row => {
+        if (row.vorher === factorName) row.vorher = "";
+        if (row.nachher === factorName) row.nachher = "";
+      });
+      renderFactorsTable();
+      renderTable();
+      recalculate();
+    });
+  });
+}
+
+function factorOptions(selectedValue) {
+  return backendData.map(d =>
+    `<option value="${escapeHtml(d.beschreibung)}" ${selectedValue === d.beschreibung ? "selected" : ""}>${escapeHtml(d.beschreibung)}</option>`
+  ).join("");
+}
+
+function renderTable() {
+  sortDataLikePlot();
+  tbody.innerHTML = "";
+
+  data.forEach((row, index) => {
+    const bilanz = calculateBilanz(row);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <select class="form-select form-select-sm w-100" data-index="${index}" data-field="vorher">
+          <option value=""></option>
+          ${factorOptions(row.vorher)}
+        </select>
+      </td>
+      <td>
+        <select class="form-select form-select-sm w-100" data-index="${index}" data-field="nachher">
+          <option value=""></option>
+          ${factorOptions(row.nachher)}
+        </select>
+      </td>
+      <td><input type="number" step="1" class="form-control form-control-sm w-100" value="${row.flaeche}" data-index="${index}" data-field="flaeche"></td>
+      <td id="balance-${index}" class="${bilanz >= 0 ? 'positive' : 'negative'}">${formatNumber(bilanz)}</td>
+      <td><button class="btn btn-outline-danger btn-sm btn-delete" data-index="${index}">x</button></td>
+      <td><input type="checkbox" data-index="${index}" class="row-check" ${row.checked ? "checked" : ""}></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  rowStats.textContent = `${data.length} Zeilen`;
+
+  document.querySelectorAll("#dataTable input, #dataTable select").forEach(el => {
+    el.addEventListener("input", e => {
+      const idx = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      if (!field) return;
+
+      data[idx][field] = field === "flaeche" ? parseNumber(e.target.value) : e.target.value;
+      recalculate(false); // kein Sortieren während des Tippens
+    });
+
+    el.addEventListener("change", e => {
+      const idx = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      if (!field) return;
+
+      data[idx][field] = field === "flaeche" ? parseNumber(e.target.value) : e.target.value;
+      recalculate(true); // erst nach Abschluss sortieren
+    });
+
+    el.addEventListener("blur", e => {
+      const idx = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      if (!field) return;
+
+      data[idx][field] = field === "flaeche" ? parseNumber(e.target.value) : e.target.value;
+      recalculate(true); // auch beim Verlassen des Feldes sortieren
+    });
+  });
+
+  document.querySelectorAll(".btn-delete").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const idx = Number(e.target.dataset.index);
+      data.splice(idx, 1);
+      recalculate();
+    });
+  });
+
+  document.querySelectorAll(".row-check").forEach(cb => {
+    cb.addEventListener("change", e => {
+      const idx = Number(e.target.dataset.index);
+      data[idx].checked = e.target.checked;
+      recalculate();
+    });
+  });
+}
+
+function recalculate(sortRows = true) {
+  if (sortRows) {
+    sortDataLikePlot();
+    renderTable();
+  } else {
+    updateBalanceCellsOnly();
+  }
+
+  let sum = 0;
+  data.forEach((row) => {
+    sum += calculateBilanz(row);
+  });
+
+  sumCell.textContent = formatNumber(sum);
+  sumCell.className = sum >= 0 ? "positive" : "negative";
+
+  renderWaterfallPlot();
+}
+
+function updateBalanceCellsOnly() {
+  data.forEach((row, index) => {
+    const bilanz = calculateBilanz(row);
+    const cell = document.getElementById(`balance-${index}`);
+    if (cell) {
+      cell.textContent = formatNumber(bilanz);
+      cell.className = bilanz >= 0 ? "positive" : "negative";
+    }
+  });
+}
+
+function renderWaterfallPlot() {
+  const plotRows = data
+    .filter(row => row.checked && row.flaeche !== 0)
+    .map(row => {
+      const faktorVorher = findFactor(row.vorher)?.faktor;
+      const faktorNachher = findFactor(row.nachher)?.faktor;
+      const value = calculateBilanz(row);
+      return {
+        label: buildTransitionLabel(row.vorher, row.nachher),
+        before: row.vorher,
+        after: row.nachher,
+        factorBefore: faktorVorher,
+        factorAfter: faktorNachher,
+        value
+      };
+    })
+    .filter(row => row.before || row.after)
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+  const container = document.getElementById("waterfallContainer");
+
+  if (!plotRows.length) {
+    Plotly.purge(container);
+    container.innerHTML = '<div class="p-4 text-muted">Noch keine Daten für den Plot vorhanden.</div>';
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const labels = uniqueLabels(plotRows.map(r => r.label));
+  const netBalance = plotRows.reduce((sum, r) => sum + r.value, 0);
+  const totalColor = netBalance >= 0 ? COLORS.total_pos : COLORS.total_neg;
+
+  const hoverRows = plotRows.map(r => (
+    `<b>${escapeHtml(String(r.before || ''))} → ${escapeHtml(String(r.after || ''))}</b><br>` +
+    `Vorher-Faktor: ${r.factorBefore ?? '?'}<br>` +
+    `Nachher-Faktor: ${r.factorAfter ?? '?'}<br>` +
+    `Bilanzbeitrag: ${formatNumber(r.value)}`
+  ));
+
+  const xLabels = [...labels, 'Netto-Bilanz'];
+  const yValues = [...plotRows.map(r => r.value), netBalance];
+  const customData = [...hoverRows, `<b>Netto-Bilanz</b><br>Wert: ${formatNumber(netBalance)}`];
+  const totalIdx = xLabels.length - 1;
+
+  const figData = [{
+    type: 'waterfall',
+    orientation: 'v',
+    x: xLabels,
+    y: yValues,
+    measure: [...Array(plotRows.length).fill('relative'), 'total'],
+    connector: { line: { color: COLORS.line, width: 0.8, dash: 'dot' } },
+    increasing: { marker: { color: COLORS.pos } },
+    decreasing: { marker: { color: COLORS.neg } },
+    totals: { marker: { color: totalColor } },
+    text: yValues.map(v => formatNumber(v)),
+    textposition: 'outside',
+    textfont: { size: 11, color: COLORS.text },
+    customdata: customData,
+    hovertemplate: '%{customdata}<extra></extra>'
+  }];
+
+  const layout = {
+    title: {
+      text: `Blue–Green Infrastructure Balance — ${baseName || 'Projekt'}`,
+      x: 0.01,
+      xanchor: 'left',
+      font: { size: 22, color: COLORS.text }
+    },
+    paper_bgcolor: COLORS.paper,
+    plot_bgcolor: COLORS.bg,
+    font: { family: 'Inter, Arial, Helvetica, sans-serif', size: 13, color: COLORS.text },
+    margin: { l: 70, r: 30, t: 85, b: 120 },
+    height: Math.max(760, 520 + xLabels.length * 10),
+    showlegend: false,
+    hoverlabel: {
+      bgcolor: '#FFFFFF',
+      bordercolor: '#D1D5DB',
+      font: { family: 'Inter, Arial, sans-serif', size: 12, color: '#111827' },
+      align: 'left'
+    },
+    xaxis: {
+      title: 'Transformation',
+      showgrid: false,
+      zeroline: false,
+      showline: false,
+      tickfont: { size: 11, color: COLORS.muted },
+      title_font: { size: 12, color: COLORS.muted },
+      automargin: true,
+      tickangle: -18
+    },
+    yaxis: {
+      title: 'Fläche',
+      showgrid: true,
+      gridcolor: COLORS.grid,
+      gridwidth: 0.8,
+      zeroline: false,
+      showline: false,
+      tickfont: { size: 11, color: COLORS.muted },
+      title_font: { size: 12, color: COLORS.muted }
+    },
+    shapes: [{
+      type: 'line',
+      x0: -0.5,
+      x1: xLabels.length - 0.5,
+      y0: 0,
+      y1: 0,
+      line: { color: COLORS.line, width: 1.0, dash: 'dash' }
+    }, {
+      type: 'rect',
+      xref: 'x',
+      yref: 'paper',
+      x0: totalIdx - 0.5,
+      x1: totalIdx + 0.5,
+      y0: 0,
+      y1: 1,
+      fillcolor: COLORS.highlight,
+      line: { width: 0 }
+    }],
+    annotations: [{
+      x: totalIdx,
+      y: netBalance,
+      text: 'Final balance',
+      showarrow: false,
+      yshift: netBalance >= 0 ? 22 : -22,
+      font: { size: 11, color: COLORS.muted }
+    }]
+  };
+
+  Plotly.newPlot(container, figData, layout, {
+    responsive: true,
+    displaylogo: false,
+    toImageButtonOptions: {
+      format: 'png',
+      filename: `plot_waterfall_${baseName || 'projekt'}`,
+      scale: 10
+    }
+  });
+}
+
+function loadProjectCsv(text, fileName = 'Projekt') {
+  const delimiter = detectDelimiter(text);
+
+  Papa.parse(text, {
+    header: true,
+    skipEmptyLines: true,
+    delimiter,
+    complete: function(results) {
+      const rows = results.data.map(row => {
+        const normalized = {};
+        Object.keys(row).forEach(key => normalized[normalizeKey(key)] = row[key]);
+        return normalized;
+      });
+
+      if (!rows.length) {
+        showError('CSV ist leer oder konnte nicht gelesen werden.');
+        return;
+      }
+
+      const first = rows[0];
+      const beforeKey = Object.keys(first).find(k => ['before', 'vorher'].includes(k));
+      const afterKey = Object.keys(first).find(k => ['after', 'nachher'].includes(k));
+      const areaKey = Object.keys(first).find(k => ['area', 'flaeche'].includes(k));
+
+      if (!beforeKey || !afterKey || !areaKey) {
+        showError('Die CSV braucht Spalten für Before, After und Area.');
+        return;
+      }
+
+      hideError();
+      baseName = fileName.replace(/\.csv$/i, '');
+
+      data = rows.map((r) => ({
+        vorher: String(r[beforeKey] || '').trim(),
+        nachher: String(r[afterKey] || '').trim(),
+        flaeche: parseNumber(r[areaKey]),
+        checked: true
+      }));
+
+      data.forEach(row => {
+        ensureFactorExists(row.vorher, 0);
+        ensureFactorExists(row.nachher, 0);
+      });
+
+      renderFactorsTable();
+      renderDynamicHeaders();
+      recalculate();
+
+      projectInfo.classList.remove('d-none');
+      projectInfo.innerHTML = `<b>${escapeHtml(baseName)}</b> geladen. ${data.length} Datensätze importiert.`;
+    },
+    error: function(err) {
+      showError('Fehler beim Einlesen der CSV: ' + err.message);
+    }
+  });
+}
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+document.getElementById('csvUpload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  loadProjectCsv(text, file.name);
+});
+
+document.getElementById('addRowBtn').addEventListener('click', () => {
+  data.push({
+    vorher: backendData[0]?.beschreibung || '',
+    nachher: backendData[0]?.beschreibung || '',
+    flaeche: 0,
+    checked: true
+  });
+  recalculate();
+});
+
+document.getElementById('scrollToChartBtn').addEventListener('click', () => {
+  document.getElementById('waterfallContainer').scrollIntoView({ behavior: 'smooth' });
+});
+
+document.getElementById('addFactorBtn').addEventListener('click', () => {
+  backendData.push({ beschreibung: 'Neue Maßnahme', faktor: 0 });
+  renderFactorsTable();
+  renderTable();
+  recalculate();
+});
+
+document.getElementById('resetFactorsBtn').addEventListener('click', () => {
+  backendData = JSON.parse(JSON.stringify(DEFAULT_FACTORS));
+  data.forEach(row => {
+    ensureFactorExists(row.vorher, 0);
+    ensureFactorExists(row.nachher, 0);
+  });
+  renderFactorsTable();
+  renderTable();
+  recalculate();
+});
+
+renderDynamicHeaders();
+renderFactorsTable();
+renderTable();
+recalculate();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
