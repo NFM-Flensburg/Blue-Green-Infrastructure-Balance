@@ -94,8 +94,15 @@ Factor values range from **0 (fully sealed)** to **1 (vegetated area)**, includi
 Parts of this source code, documentation, or other project materials were created with the help of [ChatGPT (GPT-5) by OpenAI](https://openai.com/). All content has been reviewed and verified by the project maintainers.
 
 ---
-### Project Funding
+### Project Funding and Citation
+
+Please cite as: 
+
+Hilpert S. & Nebert T. (2025). *Netto-Null-Versiegelung – Theoretische Ansätze und exemplarische Anwendung*. Zenodo. https://doi.org/10.5281/zenodo.18802345 
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18802345.svg)](https://doi.org/10.5281/zenodo.18802345)
 
 This project is funded by the **State of Schleswig-Holstein**.
 
 <img src="nfm_logo.JPG" alt="drawing" width="400"/>
+
