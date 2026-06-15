@@ -380,6 +380,8 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
             "building_green_field_name": self.building_green_field_combo.currentText(),
             "factors_csv": self._factors_csv_path,
 
+            "max_allowed_overlap_area": self.maxOverlapAreaSpinBox.value(),
+            
             # optional robuster für spätere Weiterentwicklung
             "base_layer": base_layer,
             "plan_layer": plan_layer,
