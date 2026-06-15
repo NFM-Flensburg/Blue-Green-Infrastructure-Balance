@@ -150,6 +150,28 @@ class NettoNullBilanzDialog(QtWidgets.QDialog):
         log_layout.addWidget(self.log_text)
         main_layout.addWidget(log_box)
 
+
+        # -----------------------------------------
+        # Overlap threshold
+        # -----------------------------------------
+
+        overlap_layout = QtWidgets.QHBoxLayout()
+
+        overlap_label = QtWidgets.QLabel(
+            "Max. ovelap of polygons :"
+        )
+
+        self.maxOverlapAreaSpinBox = QtWidgets.QDoubleSpinBox()
+        self.maxOverlapAreaSpinBox.setValue(30.0)
+        self.maxOverlapAreaSpinBox.setMinimum(0.0)
+        self.maxOverlapAreaSpinBox.setMaximum(999999.0)
+        self.maxOverlapAreaSpinBox.setDecimals(2)
+        self.maxOverlapAreaSpinBox.setSuffix(" m²")
+
+        overlap_layout.addWidget(overlap_label)
+        overlap_layout.addWidget(self.maxOverlapAreaSpinBox)
+
+        main_layout.addLayout(overlap_layout)
         # ============================================================
         # === DIALOG BUTTONS (Run / Close) ===
         # ============================================================
