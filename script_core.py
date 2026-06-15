@@ -14,6 +14,7 @@ from qgis.core import (
     QgsFields,
     QgsVectorFileWriter,
     QgsWkbTypes,
+    QgsSpatialIndex,
 )
 
 
@@ -78,6 +79,221 @@ def load_factor_table(factors_csv: str) -> pd.DataFrame:
 # ============================================================
 # GEOMETRY HELPERS
 # ============================================================
+def find_polygon_overlaps(
+    layer: QgsVectorLayer,
+    min_overlap_area: float = 0.0,
+    log_cb: Optional[Callable[[str], None]] = None,
+) -> list:
+    """
+    Finds polygon overlaps inside one layer.
+
+    min_overlap_area is interpreted in the layer CRS units².
+    For a projected meter CRS, this is m².
+    """
+    features = []
+
+    for feat in layer.getFeatures():
+        geom = safe_polygon_geometry(feat.geometry())
+        if geom is None:
+            continue
+        features.append((feat.id(), geom))
+
+    index = QgsSpatialIndex()
+    geom_by_id = {}
+
+    for fid, geom in features:
+        tmp_feat = QgsFeature()
+        tmp_feat.setId(fid)
+        tmp_feat.setGeometry(geom)
+        index.addFeature(tmp_feat)
+        geom_by_id[fid] = geom
+
+    overlaps = []
+
+    for fid, geom in features:
+        candidate_ids = index.intersects(geom.boundingBox())
+
+        for other_id in candidate_ids:
+            # prevent duplicate pair checks and self-checks
+            if other_id <= fid:
+                continue
+
+            other_geom = geom_by_id.get(other_id)
+            if other_geom is None:
+                continue
+
+            if not geom.intersects(other_geom):
+                continue
+
+            inter_geom = safe_polygon_geometry(geom.intersection(other_geom))
+            if inter_geom is None:
+                continue
+
+            overlap_area = inter_geom.area()
+            if overlap_area > min_overlap_area:
+                overlaps.append({
+                    "feature_1": fid,
+                    "feature_2": other_id,
+                    "overlap_area": round(overlap_area, 2),
+                })
+
+    if log_cb:
+        log_cb(
+            f"Checked overlaps for layer '{layer.name()}': "
+            f"{len(overlaps)} overlap(s) found"
+        )
+
+    return overlaps
+
+
+def feature_label(feat: QgsFeature, label_field: Optional[str] = None) -> str:
+    if feat is None:
+        return "fid=unknown, Fläche=unknown"
+
+    fid = feat.id()
+
+    value = None
+    if label_field:
+        try:
+            value = feat[label_field]
+        except Exception:
+            value = None
+
+    if value is None or not str(value).strip():
+        value = "unknown"
+
+    return f"fid={fid}, Fläche='{str(value).strip()}'"
+
+def validate_layer_overlaps(
+    layer: QgsVectorLayer,
+    max_allowed_overlap_area: float = 30.0,
+    min_report_overlap_area: float = 0.01,
+    label_field: Optional[str] = None,
+    log_cb: Optional[Callable[[str], None]] = None,
+) -> str:
+    """
+    Checks polygon overlaps inside one layer and returns a full validation report.
+
+    Rules:
+    - no overlaps above min_report_overlap_area -> PASSED report
+    - overlaps <= max_allowed_overlap_area -> WARNING report, calculation continues
+    - overlaps > max_allowed_overlap_area -> ERROR report, calculation aborts
+
+    Areas are interpreted in layer CRS units².
+    For a projected meter CRS, this is m².
+    """
+    overlaps = find_polygon_overlaps(
+        layer=layer,
+        min_overlap_area=min_report_overlap_area,
+        log_cb=None,
+    )
+
+    features_by_id = {feat.id(): feat for feat in layer.getFeatures()}
+
+    warning_overlaps = []
+    critical_overlaps = []
+    warning_lines = []
+    critical_lines = []
+
+    for overlap in overlaps:
+        area = float(overlap["overlap_area"])
+
+        f1 = features_by_id.get(overlap["feature_1"])
+        f2 = features_by_id.get(overlap["feature_2"])
+
+        label_1 = feature_label(f1, label_field)
+        label_2 = feature_label(f2, label_field)
+
+        line = (
+            f"Fläche 1 [{label_1}] überschneidet "
+            f"Fläche 2 [{label_2}] um {area:.2f} m²"
+        )
+
+        if area > max_allowed_overlap_area:
+            critical_overlaps.append(overlap)
+            critical_lines.append(f"  - ERROR: {line}")
+        else:
+            warning_overlaps.append(overlap)
+            warning_lines.append(f"  - WARNING: {line}")
+
+    # Important: calculate sums AFTER the classification loop from the exact lists
+    # that are reported below. This prevents summary values from diverging from
+    # the detailed WARNING / ERROR entries.
+    warning_area = round(sum(float(o["overlap_area"]) for o in warning_overlaps), 2)
+    critical_area = round(sum(float(o["overlap_area"]) for o in critical_overlaps), 2)
+    total_overlap_area = round(warning_area + critical_area, 2)
+
+    validation_result = "FAILED" if critical_overlaps else "PASSED"
+
+    report_lines = [
+        "===== OVERLAP VALIDATION REPORT =====",
+        f"Layer                  : {layer.name()}",
+        f"Label field            : {label_field or '(none)'}",
+        f"Max allowed overlap    : {max_allowed_overlap_area:.2f} m²",
+        f"Minimum reported overlap: {min_report_overlap_area:.2f} m²",
+        f"Validation result      : {validation_result}",
+        f"Found overlaps         : {len(overlaps)}",
+        f"Total overlap area     : {total_overlap_area:.2f} m²",
+        f"Warning overlaps       : {len(warning_overlaps)}",
+        f"Warning overlap area   : {warning_area:.2f} m²",
+        f"Critical overlaps      : {len(critical_overlaps)}",
+        f"Critical overlap area  : {critical_area:.2f} m²",
+        "",
+    ]
+
+    if not overlaps:
+        report_lines.extend([
+            "OK: no polygon overlaps above the minimum reporting area were found.",
+            "===== END OVERLAP VALIDATION REPORT =====",
+        ])
+    else:
+        if warning_lines:
+            report_lines.append("Non-critical overlaps below or equal to threshold:")
+            report_lines.extend(warning_lines)
+            report_lines.append("")
+
+        if critical_lines:
+            report_lines.append("Critical overlaps above threshold:")
+            report_lines.extend(critical_lines)
+            report_lines.append("")
+
+        report_lines.append("===== END OVERLAP VALIDATION REPORT =====")
+
+    report = "\n".join(report_lines)
+
+    if log_cb:
+        log_cb("")
+        for line in report_lines:
+            log_cb(line)
+
+    if critical_overlaps:
+        error_lines = [
+            f"Layer '{layer.name()}' contains {len(critical_overlaps)} overlap(s) "
+            f"larger than {max_allowed_overlap_area:.2f} m².",
+            "",
+            "Critical overlaps only:",
+        ]
+
+        for overlap in critical_overlaps:
+            area = float(overlap["overlap_area"])
+     
+            f1 = features_by_id.get(overlap["feature_1"])
+            f2 = features_by_id.get(overlap["feature_2"])
+
+            label_1 = feature_label(f1, label_field)
+            label_2 = feature_label(f2, label_field)
+
+            error_lines.append(
+                f"  - Fläche 1 [{label_1}] überschneidet "
+                f"Fläche 2 [{label_2}] um {area:.2f} m²"
+            )
+
+        error_message = "\n".join(error_lines)
+
+        raise ValueError(error_message)
+
+    return report
+
 def build_union_geometries(base_layer: QgsVectorLayer, field_name: str) -> Tuple[dict, dict]:
     geom_by_field = defaultdict(list)
 
@@ -298,7 +514,13 @@ def apply_factors_to_rows(rows: list, factors_csv: str) -> pd.DataFrame:
     df["Factor_after"] = df["Factor_after"].fillna(0)
 
     df["DeltaFactor"] = (df["Factor_after"] - df["Factor_before"]).round(3)
+
+    # Net change-based BFF balance: improvement/decline compared to the previous state
     df["BFF_Area"] = (df["DeltaFactor"] * df["Area"]).round(2)
+
+    # Final effective BFF area: final area contribution based only on the AFTER category.
+    # Area is made positive because this value represents the final state, not the change direction.
+    df["Final_BFF_Area"] = (df["Area"].abs() * df["Factor_after"]).round(2)
 
     def classify_delta(v):
         if v > 0:
@@ -325,11 +547,13 @@ def aggregate_change_rows(df_atomic: pd.DataFrame) -> pd.DataFrame:
         .agg({
             "Area": "sum",
             "BFF_Area": "sum",
+            "Final_BFF_Area": "sum",
         })
     )
 
     df_agg["Area"] = df_agg["Area"].round(2)
     df_agg["BFF_Area"] = df_agg["BFF_Area"].round(2)
+    df_agg["Final_BFF_Area"] = df_agg["Final_BFF_Area"].round(2)
     return df_agg
 
 
@@ -353,6 +577,7 @@ def write_spatial_change_layer(
     fields.append(QgsField("F_after", QVariant.Double))
     fields.append(QgsField("Delta", QVariant.Double))
     fields.append(QgsField("BFF_Area", QVariant.Double))
+    fields.append(QgsField("Final_BFF", QVariant.Double))
     fields.append(QgsField("Class", QVariant.String))
     fields.append(QgsField("Source", QVariant.String))
 
@@ -387,6 +612,7 @@ def write_spatial_change_layer(
         feat["F_after"] = float(row.get("Factor_after", 0))
         feat["Delta"] = float(row.get("DeltaFactor", 0))
         feat["BFF_Area"] = float(row.get("BFF_Area", 0))
+        feat["Final_BFF"] = float(row.get("Final_BFF_Area", 0))
         feat["Class"] = str(row.get("ChangeClass", ""))
         feat["Source"] = str(row.get("Source", ""))
 
@@ -409,6 +635,10 @@ def main(
     building_green: list,
     building_green_layer_name: str = None,
     building_green_field_name: str = None,
+    max_allowed_overlap_area: float = 30.0,
+    min_report_overlap_area: float = 0.01,
+    validate_base_layer: bool = True,
+    validate_planning_layer: bool = True,
     log_cb: Optional[Callable[[str], None]] = None,
 ):
     """
@@ -428,6 +658,33 @@ def main(
     if log_cb:
         log_cb(f"Using plan layer: {planning_layer_name}")
     planning_layer = get_layer_from_project(planning_layer_name)
+
+    # --------------------------------------------------------
+    # 0) validate polygon overlaps before calculation
+    # --------------------------------------------------------
+    validation_reports = []
+
+    if validate_base_layer:
+        validation_reports.append(
+            validate_layer_overlaps(
+                base_layer,
+                max_allowed_overlap_area=max_allowed_overlap_area,
+                min_report_overlap_area=min_report_overlap_area,
+                label_field=base_field_name,
+                log_cb=log_cb,
+            )
+        )
+
+    if validate_planning_layer:
+        validation_reports.append(
+            validate_layer_overlaps(
+                planning_layer,
+                max_allowed_overlap_area=max_allowed_overlap_area,
+                min_report_overlap_area=min_report_overlap_area,
+                label_field=plan_field_name,
+                log_cb=log_cb,
+            )
+        )
 
     # optional measures from layer
     building_green_from_layer = _bg_from_layer(
@@ -496,8 +753,13 @@ def main(
     # 6) summary / log
     # --------------------------------------------------------
     net_balance = float(results_df["BFF_Area"].sum()) if "BFF_Area" in results_df.columns else 0.0
+    final_bff_area = float(results_df["Final_BFF_Area"].sum()) if "Final_BFF_Area" in results_df.columns else 0.0
+
     total_planning_area = calculate_total_layer_area(planning_layer)
+
     percentage = (net_balance / total_planning_area * 100) if total_planning_area > 0 else 0.0
+    final_bff_factor = (final_bff_area / total_planning_area) if total_planning_area > 0 else 0.0
+    final_bff_percentage = final_bff_factor * 100
 
     if log_cb:
         log_cb(f"Results written to: {output_csv_path}")
@@ -507,6 +769,9 @@ def main(
         log_cb(f"Total planning area : {total_planning_area:.2f} m²")
         log_cb(f"Net Balance         : {net_balance:.2f} m²")
         log_cb(f"Percentage          : {percentage:.2f} %")
+        log_cb(f"Final BFF Area      : {final_bff_area:.2f} m²")
+        log_cb(f"Final BFF Factor    : {final_bff_factor:.4f}")
+        log_cb(f"Final BFF Percentage: {final_bff_percentage:.2f} %")
         log_cb("")
         log_cb("===== SPATIAL CHANGE FIELD =====")
         log_cb("Use field 'Delta' for coloring the polygons:")
@@ -524,7 +789,11 @@ def main(
         "Total planning area": f"{total_planning_area:.2f} m2",
         "Net Balance": f"{net_balance:.2f} m2",
         "Percentage": f"{percentage:.2f} %",
+        "Final BFF Area": f"{final_bff_area:.2f} m2",
+        "Final BFF Factor": f"{final_bff_factor:.4f}",
+        "Final BFF Percentage": f"{final_bff_percentage:.2f} %",
         "Results path": output_csv_path,
         "Spatial change path": spatial_output_path,
+        "Validation report": "\n\n".join(validation_reports),
     }
     return result_dict, results_df
