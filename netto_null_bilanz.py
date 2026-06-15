@@ -353,6 +353,7 @@ class NettoNullBilanz:
         base_field_name = params.get("base_field_name", "")
         plan_layer_name = params.get("plan_layer_name", "")
         plan_field_name = params.get("plan_field_name", "")
+        max_allowed_overlap_area = float(params.get("max_allowed_overlap_area", 30.0))
         factors_csv = params.get("factors_csv", "")
         building_green = params.get("building_green", [])
         building_green_layer_name = params.get("building_green_layer_name")
@@ -442,6 +443,7 @@ class NettoNullBilanz:
                 building_green=building_green,
                 building_green_layer_name=building_green_layer_name,
                 building_green_field_name=building_green_field_name,
+                max_allowed_overlap_area=max_allowed_overlap_area,
                 log_cb=log_cb,
             )
 
