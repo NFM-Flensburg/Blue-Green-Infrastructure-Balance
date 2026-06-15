@@ -16,7 +16,7 @@
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
     body { display: flex; flex-direction: column; }
-    .main-content { flex: 1; padding: 2rem 1rem; }
+    .main-content { flex: 1; padding: 1rem 1rem 2rem; }
 
     header {
       position: sticky;
@@ -49,9 +49,10 @@
     }
 
     @media (max-width: 768px) {
-      .brand-logo {
-        height: 48px;
-      }
+      .brand-logo { height: 48px; }
+      header .branding h1 { font-size: 1.25rem; }
+      header .branding h2 { font-size: .85rem; }
+      .sticky-tools { top: 70px; }
     }
 
     header .branding h1 {
@@ -84,20 +85,20 @@
       font-weight:bold;
     }
 
-    .table-teal tbody tr:nth-child(even) {
-      background-color:#f0fbfb;
-    }
+    .table-teal tbody tr:nth-child(even) { background-color:#f0fbfb; }
 
     .positive { color: #3E6676; font-weight: 700; }
     .negative { color: #7C4F4F; font-weight: 700; }
 
-    .chart-card {
+    .chart-card, .summary-card {
       border:1px solid #e5e7eb;
       border-radius:.9rem;
       background:#fff;
       box-shadow:0 2px 6px rgba(0,0,0,.05);
-      padding:.5rem;
     }
+
+    .chart-card { padding:.5rem; }
+    .summary-card { padding: 1rem; height: 100%; }
 
     .mini-label { font-size: .82rem; color: #6B7280; }
 
@@ -105,8 +106,9 @@
       position: sticky;
       top: 86px;
       z-index: 1000;
-      background: #f8f9fa;
-      padding-bottom: .5rem;
+      background: rgba(248,249,250,.94);
+      padding: .45rem 0 .55rem;
+      backdrop-filter: blur(8px);
     }
 
     .factor-table input[type="number"] { min-width: 110px; }
@@ -116,6 +118,263 @@
       color: #3E6676;
       border: 1px solid rgba(62,102,118,0.12);
     }
+
+    .kpi-value {
+      font-size: 1.08rem;
+      line-height: 1.1;
+      font-weight: 800;
+      color: #1F2937;
+      white-space: nowrap;
+    }
+
+    .kpi-label {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #6B7280;
+      margin-bottom: .2rem;
+    }
+
+    .scenario-banner {
+      position: sticky;
+      top: 94px;
+      z-index: 1010;
+      border: 1px solid rgba(62,102,118,0.16);
+      border-left: 5px solid #3E6676;
+      background: rgba(255,255,255,.98);
+      border-radius: 1rem;
+      box-shadow:0 8px 22px rgba(0,0,0,.12);
+      padding: .35rem .45rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .scenario-banner.is-collapsed .kpi-detail-row,
+    .scenario-banner.is-collapsed .scenario-help-text { display: none !important; }
+
+    .scenario-banner:not(.is-collapsed) .kpi-detail-row { display: flex !important; }
+    .scenario-banner:not(.is-collapsed) .scenario-help-text { display: block !important; }
+
+    .scenario-banner-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+      margin-bottom:.45rem;
+    }
+
+    .scenario-banner-title {
+      font-weight:800;
+      color:#27485d;
+      font-size:.9rem;
+      display:flex;
+      align-items:center;
+      gap:.4rem;
+      white-space:nowrap;
+    }
+
+    .kpi-card {
+      height: 100%;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: .8rem;
+      padding: .55rem .65rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.045);
+      display: flex;
+      gap: .5rem;
+      align-items: flex-start;
+      min-height: 58px;
+    }
+
+    .kpi-icon {
+      width: 1.8rem;
+      height: 1.8rem;
+      border-radius: .7rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      background: rgba(62,102,118,0.1);
+      color: #3E6676;
+      font-size: .95rem;
+    }
+
+    .kpi-control-card {
+      background: #f8fafc;
+      border-style: dashed;
+    }
+
+    .modal-header.brand-modal-header {
+      background: linear-gradient(90deg, #27485d, #d5e6f1);
+      color: #fff;
+      border-bottom: 0;
+    }
+
+    .modal-header.brand-modal-header .mini-label { color: rgba(255,255,255,.88); }
+    .modal-header.brand-modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+    .cost-table input[type="number"] { min-width: 120px; }
+
+    .scenario-extra-row {
+      border-top: 1px solid #e5e7eb;
+      margin-top: .45rem;
+      padding-top: .45rem;
+    }
+
+    .we-input { max-width: 130px; }
+
+    @media (max-width: 768px) {
+      .scenario-banner { top: 112px; }
+      .kpi-value { font-size: 1.05rem; }
+      .kpi-card { padding: .55rem; }
+    }
+
+
+
+    .dashboard-chart-card {
+      padding: .5rem;
+      min-height: calc(100vh - 190px);
+      position: relative;
+    }
+
+    #waterfallContainer {
+      min-height: calc(100vh - 245px);
+    }
+
+    .dashboard-chart-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .55rem .55rem 0 .55rem;
+      flex-wrap: wrap;
+    }
+
+    .workflow-card {
+      border: 1px solid #e5e7eb;
+      border-radius: .9rem;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      padding: 1rem;
+      height: 100%;
+      box-shadow: 0 2px 6px rgba(0,0,0,.045);
+    }
+
+    .workflow-step {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+      padding: .6rem 0;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .workflow-step:last-child { border-bottom: 0; }
+
+    .workflow-icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: .65rem;
+      background: rgba(62,102,118,0.1);
+      color: #3E6676;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .data-modal-table-wrap {
+      max-height: 66vh;
+      overflow: auto;
+    }
+
+    #dataTable thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    #dataTable tfoot th {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+    }
+
+    .form-select-sm option { font-size: .9rem; }
+
+    .plot-focus-mode {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw;
+      height: 100vh !important;
+      z-index: 3000;
+      background: #fff;
+      border-radius: 0 !important;
+      padding: 1rem !important;
+      overflow: hidden;
+      box-shadow: none !important;
+    }
+
+    body.plot-is-focused .scenario-banner,
+    body.plot-is-focused .sticky-tools,
+    body.plot-is-focused header {
+      display: none !important;
+    }
+
+    body.plot-is-focused .floating-actions {
+      z-index: 3001;
+    }
+
+    .plot-focus-mode #waterfallContainer {
+      height: calc(100vh - 78px) !important;
+      min-height: calc(100vh - 78px) !important;
+    }
+
+    .plot-focus-mode .dashboard-chart-header {
+      padding: .35rem .5rem .5rem .5rem;
+    }
+
+    .floating-actions {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 1040;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .floating-actions .btn {
+      box-shadow: 0 8px 18px rgba(0,0,0,.16);
+      border-radius: 999px;
+    }
+
+
+
+    body.plot-is-focused { overflow: hidden !important; }
+    body.plot-is-focused .dashboard-chart-card.plot-focus-mode {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      z-index: 3000 !important;
+      background: #fff !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      padding: .75rem !important;
+      overflow: hidden !important;
+    }
+    body.plot-is-focused .dashboard-chart-card.plot-focus-mode #waterfallContainer {
+      height: calc(100vh - 72px) !important;
+      min-height: calc(100vh - 72px) !important;
+      width: 100% !important;
+    }
+
+    @media (max-width: 992px) {
+      .scenario-banner { top: 112px; }
+      .sticky-tools { position: static; }
+      #waterfallContainer { min-height: 620px; }
+      .floating-actions { right: .75rem; bottom: .75rem; }
+    }
+
   </style>
 </head>
 <body>
@@ -134,81 +393,245 @@
 </header>
 
 <div class="container-fluid main-content">
-  <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="analyse-tab" data-bs-toggle="tab" data-bs-target="#analyse" type="button" role="tab">Bilanz</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Faktoren & Maßnahmen</button>
-    </li>
-  </ul>
+  <div class="sticky-tools">
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-lg-4">
+        <label for="csvUpload" class="form-label">Projekt-CSV hochladen</label>
+        <input type="file" id="csvUpload" class="form-control form-control-sm" accept=".csv" />
+        <div class="mini-label mt-1">Erwartete Spalten: Before, After, Area. Zusätzliche Spalten sind okay.</div>
+      </div>
+      <div class="col-lg-8 d-flex gap-2 flex-wrap justify-content-lg-end align-items-end">
+        <span class="badge rounded-pill badge-soft align-self-center" id="rowStats">0 Zeilen</span>
+      </div>
+    </div>
+  </div>
 
-  <div class="tab-content" id="dashboardTabContent">
-    <div class="tab-pane fade show active" id="analyse" role="tabpanel">
-      <div class="sticky-tools">
-        <div class="row g-3 align-items-end mb-3">
-          <div class="col-lg-5">
-            <label for="csvUpload" class="form-label">Projekt-CSV hochladen</label>
-            <input type="file" id="csvUpload" class="form-control form-control-sm" accept=".csv" />
-            <div class="mini-label mt-1">Erwartete Spalten: Before, After, Area. Zusätzliche Spalten sind okay.</div>
-          </div>
-          <div class="col-lg-7 d-flex gap-2 flex-wrap">
-            <button id="addRowBtn" class="btn btn-primary btn-sm">Maßnahme hinzufügen</button>
-            <button id="scrollToChartBtn" class="btn btn-secondary btn-sm">Zum Diagramm scrollen</button>
-            <span class="badge rounded-pill badge-soft align-self-center" id="rowStats">0 Zeilen</span>
-          </div>
+  <div id="projectInfo" class="alert alert-light d-none mt-2"></div>
+  <div id="errorBox" class="alert alert-danger d-none" role="alert"></div>
+
+  <div id="scenarioBanner" class="scenario-banner mb-3 is-collapsed">
+    <div class="scenario-banner-head">
+      <div class="scenario-banner-title">📌 Hauptinfos</div>
+      <span class="mini-label">Mehr Details über den Button unten rechts</span>
+    </div>
+    <div class="row g-2 align-items-stretch">
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">🏁</div>
+          <div><div class="kpi-label">Ist-Bilanz</div><div id="baselineSum" class="kpi-value">0 m²</div></div>
         </div>
       </div>
-
-      <div id="projectInfo" class="alert alert-light d-none mt-2"></div>
-      <div id="errorBox" class="alert alert-danger d-none" role="alert"></div>
-
-      <div class="row g-3">
-        <div class="col-xl-5">
-          <div class="chart-card">
-            <h5 class="mb-3">Daten & Maßnahmen</h5>
-            <div class="table-responsive">
-              <table class="table table-bordered table-sm table-teal align-middle" id="dataTable">
-                <thead><tr id="dataTableHeader"></tr></thead>
-                <tbody></tbody>
-                <tfoot>
-                  <tr>
-                    <th colspan="3" class="text-end">SUMME</th>
-                    <th id="sumCell"></th>
-                    <th></th>
-                    <th></th>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">🧭</div>
+          <div><div class="kpi-label">Szenario-Bilanz</div><div id="scenarioSum" class="kpi-value">0 m²</div></div>
         </div>
-
-        <div class="col-xl-7">
-          <div class="chart-card">
-            <div id="waterfallContainer"></div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">↔️</div>
+          <div><div class="kpi-label">Veränderung</div><div id="deltaSum" class="kpi-value">0 m²</div></div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">€</div>
+          <div><div class="kpi-label">Zusatzkosten ggü. Ist</div><div id="extraCostSum" class="kpi-value">0 Tsd. €</div></div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">€/㎡</div>
+          <div><div class="kpi-label">Zusatzkosten relativ</div><div id="extraCostPerM2" class="kpi-value">0 €/m²</div></div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card kpi-control-card">
+          <div class="kpi-icon">⚙️</div>
+          <div class="w-100">
+            <label for="costVariantSelect" class="kpi-label">Kostenvariante</label>
+            <select id="costVariantSelect" class="form-select form-select-sm">
+              <option value="billig">günstig</option>
+              <option value="mittel" selected>mittel</option>
+              <option value="teuer">teuer</option>
+            </select>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="tab-pane fade" id="info" role="tabpanel">
-      <div class="d-flex gap-2 flex-wrap mb-3">
-        <button id="addFactorBtn" class="btn btn-primary btn-sm">Faktor hinzufügen</button>
-        <button id="resetFactorsBtn" class="btn btn-outline-secondary btn-sm">Standardfaktoren zurücksetzen</button>
+    <div class="row g-2 align-items-stretch scenario-extra-row kpi-detail-row">
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card kpi-control-card">
+          <div class="kpi-icon">👥</div>
+          <div class="w-100">
+            <label for="indicatorTypeSelect" class="kpi-label">Bezugsindikator</label>
+            <select id="indicatorTypeSelect" class="form-select form-select-sm">
+              <option value="person" selected>Personen</option>
+              <option value="we">WE</option>
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="mini-label mb-2">Die Werte hier steuern direkt die Dropdown-Auswahl, die Bilanz und den Plot. Änderungen wirken sofort.</div>
-      <div class="table-responsive">
-        <table class="table table-bordered table-teal factor-table" id="factorsTable">
-          <thead>
-            <tr>
-              <th>Maßnahme / Faktor</th>
-              <th>BFF-Faktor</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card kpi-control-card">
+          <div class="kpi-icon">#</div>
+          <div class="w-100">
+            <label for="indicatorCountInput" class="kpi-label">Anzahl</label>
+            <input type="number" id="indicatorCountInput" class="form-control form-control-sm" min="0" step="1" placeholder="z. B. 800">
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">🏁</div>
+          <div><div class="kpi-label">Ist-Bilanz / <span id="indicatorLabelBaseline">Person</span></div><div id="baselinePerIndicator" class="kpi-value">–</div></div>
+        </div>
+      </div>
+      <div class="col-xl-3 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">🧭</div>
+          <div><div class="kpi-label">Szenario-Bilanz / <span id="indicatorLabelScenario">Person</span></div><div id="scenarioPerIndicator" class="kpi-value">–</div></div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="kpi-card">
+          <div class="kpi-icon">◼</div>
+          <div><div class="kpi-label">Versiegelung ggü. Ist</div><div id="sealedDelta" class="kpi-value">0 m²</div></div>
+        </div>
+      </div>
+      <div class="col-12 scenario-help-text">
+        <div class="mini-label">Kostenansätze in €/m²; Zusatzkosten werden als Tsd. € und relativ als €/m² der geänderten Szenariofläche angezeigt. Die Indikatorwerte zeigen Ist- und Szenario-Bilanz je Person oder Wohneinheit.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 align-items-stretch">
+    <div class="col-12">
+      <div class="chart-card dashboard-chart-card">
+        <div class="dashboard-chart-header">
+          <div>
+            <h5 class="mb-1">Szenario-Vergleich</h5>
+            <div class="mini-label">Der Plot steht im Fokus. Die Datentabelle öffnest du über „Daten bearbeiten“.</div>
+          </div>
+          <div class="dashboard-chart-hint mini-label">Aktionen unten rechts</div>
+        </div>
+        <div id="waterfallContainer"></div>
+      </div>
+    </div>
+
+
+</div>
+
+<div class="floating-actions">
+  <button id="floatingToggleKpiBtn" class="btn btn-outline-secondary btn-sm bg-white" type="button">▾ Mehr</button>
+  <button id="focusPlotBtn" class="btn btn-dark btn-sm" type="button">⛶ Plot</button>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#dataModal">📋 Daten</button>
+  <button class="btn btn-outline-primary btn-sm bg-white" data-bs-toggle="modal" data-bs-target="#costsModal">€ Kosten</button>
+  <button class="btn btn-outline-primary btn-sm bg-white" data-bs-toggle="modal" data-bs-target="#factorsModal">⚙ Faktoren</button>
+</div>
+
+<div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-xl-down modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header brand-modal-header">
+        <div>
+          <h5 class="modal-title" id="dataModalLabel">Szenario-Daten bearbeiten</h5>
+          <div class="mini-label">Dropdowns zeigen Kurzlabels; Hover/Tooltip enthält den Langnamen. Änderungen wirken sofort auf KPIs und Plot.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <button id="addRowBtnModal" class="btn btn-primary btn-sm">Szenario-Maßnahme hinzufügen</button>
+          <button id="resetScenarioBtnModal" class="btn btn-outline-secondary btn-sm">Szenario auf Ist zurücksetzen</button>
+          <span class="badge rounded-pill badge-soft align-self-center" id="rowStatsModal">0 Zeilen</span>
+        </div>
+        <div class="data-modal-table-wrap">
+          <table class="table table-bordered table-sm table-teal align-middle" id="dataTable">
+            <thead><tr id="dataTableHeader"></tr></thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <th colspan="3" class="text-end">SUMME m²</th>
+                <th id="sumCell"></th>
+                <th></th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="factorsModal" tabindex="-1" aria-labelledby="factorsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header brand-modal-header">
+        <div>
+          <h5 class="modal-title" id="factorsModalLabel">Faktoren & Maßnahmen bearbeiten</h5>
+          <div class="mini-label">Änderungen wirken direkt auf Ist-Bilanz, Szenario-Bilanz, Tabelle und Plot.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <button id="addFactorBtn" class="btn btn-primary btn-sm">Faktor hinzufügen</button>
+          <button id="resetFactorsBtn" class="btn btn-outline-secondary btn-sm">Standardfaktoren zurücksetzen</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-teal factor-table" id="factorsTable">
+            <thead>
+              <tr>
+                <th>Maßnahme / Faktor</th>
+                <th>Kurzlabel</th>
+                <th>BFF-Faktor</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="costsModal" tabindex="-1" aria-labelledby="costsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header brand-modal-header">
+        <div>
+          <h5 class="modal-title" id="costsModalLabel">Kostenmodell bearbeiten</h5>
+          <div class="mini-label">Feste Kostenliste für Vegetationsstrukturen, Dach- und Vertikalbegrünung. Die aktive Variante wird oben gewählt; die Summe wird als Tsd. € angezeigt.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <button id="resetCostsBtn" class="btn btn-outline-secondary btn-sm">Standardkosten zurücksetzen</button>
+        </div>
+        <div class="mini-label mb-2">Berechnung: Zusatzkosten entstehen nur für die Veränderung gegenüber dem geladenen Ist-Zustand. Die Kostenkategorien sind fest vorgegeben; die Werte je Variante können hier angepasst werden.</div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-teal cost-table" id="costsTable">
+            <thead>
+              <tr>
+                <th>Kategorie / Maßnahme</th>
+                <th>günstig €/m²</th>
+                <th>mittel €/m²</th>
+                <th>teuer €/m²</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
       </div>
     </div>
   </div>
@@ -233,7 +656,7 @@ const COLORS = {
   highlight: "rgba(62,102,118,0.05)"
 };
 
-const SHORT_LABELS = {
+const DEFAULT_SHORT_LABELS = {
   "Vegetationsfläche (hohes Grünvolumen)": "Vegetation hoch",
   "Vegetationsfläche (mittleres Grünvolumen)": "Vegetation mittel",
   "Vegetationsfläche (niedriges Grünvolumen)": "Vegetation niedrig",
@@ -253,42 +676,89 @@ const SHORT_LABELS = {
 };
 
 const DEFAULT_FACTORS = [
-  { beschreibung: "Vegetationsfläche (hohes Grünvolumen)", faktor: 1 },
-  { beschreibung: "Vegetationsfläche (mittleres Grünvolumen)", faktor: 0.8 },
-  { beschreibung: "Vegetationsfläche (niedriges Grünvolumen)", faktor: 0.5 },
-  { beschreibung: "Versiegelte Belagsfläche", faktor: 0 },
-  { beschreibung: "Teilversiegelte Belagsfläche", faktor: 0.1 },
-  { beschreibung: "Durchlässige Belagsfläche", faktor: 0.2 },
-  { beschreibung: "Begrünte Belagsfläche", faktor: 0.4 },
-  { beschreibung: "Gründach (extensiv)", faktor: 0.4 },
-  { beschreibung: "Gründach (einfach-intensiv)", faktor: 0.7 },
-  { beschreibung: "Gründach (intensiv)", faktor: 0.8 },
-  { beschreibung: "Vertikalbegrünung (bodengebunden)", faktor: 0.5 },
-  { beschreibung: "Vertikalbegrünung (wandgebunden-horizontal)", faktor: 0.7 },
-  { beschreibung: "Vertikalbegrünung (wandgebunden-vertikal)", faktor: 0.7 },
-  { beschreibung: "Obeflächenversickerung", faktor: 0.2 },
-  { beschreibung: "Wasserfläche", faktor: 0.5 },
-  { beschreibung: "Uncovered", faktor: 0 }
+  { beschreibung: "Vegetationsfläche (hohes Grünvolumen)", kurz: "Vegetation hoch", faktor: 1 },
+  { beschreibung: "Vegetationsfläche (mittleres Grünvolumen)", kurz: "Vegetation mittel", faktor: 0.8 },
+  { beschreibung: "Vegetationsfläche (niedriges Grünvolumen)", kurz: "Vegetation niedrig", faktor: 0.5 },
+  { beschreibung: "Versiegelte Belagsfläche", kurz: "Versiegelt", faktor: 0 },
+  { beschreibung: "Teilversiegelte Belagsfläche", kurz: "Teilversiegelt", faktor: 0.1 },
+  { beschreibung: "Durchlässige Belagsfläche", kurz: "Durchlässig", faktor: 0.2 },
+  { beschreibung: "Begrünte Belagsfläche", kurz: "Begrünter Belag", faktor: 0.4 },
+  { beschreibung: "Gründach (extensiv)", kurz: "Gründach ext.", faktor: 0.4 },
+  { beschreibung: "Gründach (einfach-intensiv)", kurz: "Gründach einf.-int.", faktor: 0.7 },
+  { beschreibung: "Gründach (intensiv)", kurz: "Gründach intensiv", faktor: 0.8 },
+  { beschreibung: "Vertikalbegrünung (bodengebunden)", kurz: "Vertikalgrün Boden", faktor: 0.5 },
+  { beschreibung: "Vertikalbegrünung (wandgebunden-horizontal)", kurz: "Vertikalgrün horiz.", faktor: 0.7 },
+  { beschreibung: "Vertikalbegrünung (wandgebunden-vertikal)", kurz: "Vertikalgrün vert.", faktor: 0.7 },
+  { beschreibung: "Obeflächenversickerung", kurz: "Versickerung", faktor: 0.2 },
+  { beschreibung: "Wasserfläche", kurz: "Wasserfläche", faktor: 0.5 },
+  { beschreibung: "Uncovered", kurz: "Uncovered", faktor: 0 }
+];
+
+const DEFAULT_COSTS = [
+  // Standardannahmen in €/m² für den Szenarienvergleich.
+  // Die Werte sind grobe Planungsannahmen und können im Kostenmodell-Modal angepasst werden.
+
+  // Vegetationsstrukturen, orientiert an den Festsetzungen: Zierrasen/Ansaat, Wildblumen/Hecken, Bäume/Gehölze.
+  { beschreibung: "Vegetationsfläche (niedriges Grünvolumen)", billig: 8, mittel: 18, teuer: 35 },
+  { beschreibung: "Vegetationsfläche (mittleres Grünvolumen)", billig: 25, mittel: 60, teuer: 120 },
+  { beschreibung: "Vegetationsfläche (hohes Grünvolumen)", billig: 70, mittel: 140, teuer: 220 },
+
+  // Dachbegrünung.
+  { beschreibung: "Gründach (extensiv)", billig: 45, mittel: 70, teuer: 110 },
+  { beschreibung: "Gründach (einfach-intensiv)", billig: 80, mittel: 125, teuer: 190 },
+  { beschreibung: "Gründach (intensiv)", billig: 130, mittel: 210, teuer: 320 },
+
+  // Vertikalbegrünung.
+  { beschreibung: "Vertikalbegrünung (bodengebunden)", billig: 60, mittel: 100, teuer: 160 },
+  { beschreibung: "Vertikalbegrünung (wandgebunden-horizontal)", billig: 180, mittel: 300, teuer: 480 },
+  { beschreibung: "Vertikalbegrünung (wandgebunden-vertikal)", billig: 180, mittel: 300, teuer: 480 }
 ];
 
 let backendData = JSON.parse(JSON.stringify(DEFAULT_FACTORS));
-let data = [];
+let costData = JSON.parse(JSON.stringify(DEFAULT_COSTS));
+let activeCostVariant = "mittel";
+let baselineData = [];
+let scenarioData = [];
+let data = scenarioData;
 let baseName = "";
+let nextRowId = 1;
 
 const tbody = document.querySelector("#dataTable tbody");
 const sumCell = document.getElementById("sumCell");
 const errorBox = document.getElementById("errorBox");
 const factorsTbody = document.querySelector("#factorsTable tbody");
+const costsTbody = document.querySelector("#costsTable tbody");
 const dataTableHeader = document.getElementById("dataTableHeader");
 const projectInfo = document.getElementById("projectInfo");
 const rowStats = document.getElementById("rowStats");
+const rowStatsModal = document.getElementById("rowStatsModal");
+const baselineSumEl = document.getElementById("baselineSum");
+const scenarioSumEl = document.getElementById("scenarioSum");
+const deltaSumEl = document.getElementById("deltaSum");
+const extraCostSumEl = document.getElementById("extraCostSum");
+const extraCostPerM2El = document.getElementById("extraCostPerM2");
+const indicatorTypeSelect = document.getElementById("indicatorTypeSelect");
+const indicatorCountInput = document.getElementById("indicatorCountInput");
+const baselinePerIndicatorEl = document.getElementById("baselinePerIndicator");
+const scenarioPerIndicatorEl = document.getElementById("scenarioPerIndicator");
+const indicatorLabelBaselineEl = document.getElementById("indicatorLabelBaseline");
+const indicatorLabelScenarioEl = document.getElementById("indicatorLabelScenario");
+const sealedDeltaEl = document.getElementById("sealedDelta");
+const costVariantSelect = document.getElementById("costVariantSelect");
 
-function formatNumber(value) {
-  return Math.round(Number(value) || 0).toLocaleString("de-DE");
+function cloneRows(rows) {
+  return JSON.parse(JSON.stringify(rows || []));
+}
+
+function formatNumber(value, showPlus = false) {
+  const rounded = Math.round(Number(value) || 0);
+  const formatted = rounded.toLocaleString("de-DE");
+  return showPlus && rounded > 0 ? `+${formatted}` : formatted;
 }
 
 function shortLabel(label) {
-  return SHORT_LABELS[label] || String(label || "");
+  const factor = findFactor(label);
+  return factor?.kurz || DEFAULT_SHORT_LABELS[label] || String(label || "");
 }
 
 function buildTransitionLabel(before, after) {
@@ -344,7 +814,13 @@ function findFactor(label) {
 function ensureFactorExists(label, fallback = 0) {
   const clean = String(label || "").trim();
   if (!clean) return;
-  if (!findFactor(clean)) backendData.push({ beschreibung: clean, faktor: fallback });
+  if (!findFactor(clean)) {
+    backendData.push({
+      beschreibung: clean,
+      kurz: DEFAULT_SHORT_LABELS[clean] || clean,
+      faktor: fallback
+    });
+  }
 }
 
 function sortFactors() {
@@ -357,18 +833,165 @@ function calculateBilanz(row) {
   return (faktorNachher - faktorVorher) * row.flaeche;
 }
 
+function sumBilanz(rows) {
+  return (rows || []).reduce((sum, row) => sum + calculateBilanz(row), 0);
+}
+
+function formatSquareMeters(value, showPlus = false) {
+  return `${formatNumber(value, showPlus)} m²`;
+}
+
+function formatThousandEuro(value, showPlus = false) {
+  const rounded = Math.round((Number(value) || 0) / 1000);
+  const formatted = rounded.toLocaleString("de-DE") + " Tsd. €";
+  return showPlus && rounded > 0 ? `+${formatted}` : formatted;
+}
+
+function formatEuro(value, showPlus = false) {
+  const rounded = Math.round(Number(value) || 0);
+  const formatted = rounded.toLocaleString("de-DE") + " €";
+  return showPlus && rounded > 0 ? `+${formatted}` : formatted;
+}
+
+function formatEuroPerSquareMeter(value, showPlus = false) {
+  const rounded = Math.round(Number(value) || 0);
+  const formatted = rounded.toLocaleString("de-DE") + " €/m²";
+  return showPlus && rounded > 0 ? `+${formatted}` : formatted;
+}
+
+function findCost(label) {
+  return costData.find(d => d.beschreibung === label);
+}
+
+function rowCostValue(row, variant = activeCostVariant) {
+  if (!row || !row.nachher) return 0;
+  const cost = findCost(row.nachher)?.[variant] ?? 0;
+  return Math.max(0, row.flaeche || 0) * cost;
+}
+
+function findBaselineRow(row) {
+  if (!row) return null;
+  if (row.rowId) return baselineData.find(baseRow => baseRow.rowId === row.rowId) || null;
+  return null;
+}
+
+function calculateExtraCost(row, variant = activeCostVariant) {
+  if (!row) return 0;
+  const scenarioCost = rowCostValue(row, variant);
+  const baselineRow = findBaselineRow(row);
+  const baselineCost = baselineRow ? rowCostValue(baselineRow, variant) : 0;
+
+  // Positiv = zusätzliche Kosten, negativ = Einsparung gegenüber dem Ist-Zustand.
+  // Wichtig: kein Math.max(...), sonst würden Rückbau/Löschen/Umwandlung in günstigere Maßnahmen nie als Einsparung erscheinen.
+  return scenarioCost - baselineCost;
+}
+
+function sumExtraCosts(rows, variant = activeCostVariant) {
+  const scenarioRows = rows || [];
+  const scenarioById = new Map(scenarioRows.filter(row => row?.rowId).map(row => [row.rowId, row]));
+  const baselineIds = new Set((baselineData || []).filter(row => row?.rowId).map(row => row.rowId));
+  let sum = 0;
+
+  // Alle Ist-Zeilen berücksichtigen. Wenn eine davon im Szenario gelöscht wurde,
+  // zählt sie als negative Kostenänderung, also als Einsparung.
+  (baselineData || []).forEach(baseRow => {
+    const scenarioRow = scenarioById.get(baseRow.rowId);
+    const scenarioCost = scenarioRow ? rowCostValue(scenarioRow, variant) : 0;
+    const baselineCost = rowCostValue(baseRow, variant);
+    sum += scenarioCost - baselineCost;
+  });
+
+  // Neu hinzugefügte Szenario-Zeilen haben keinen Ist-Gegenpart und zählen positiv.
+  scenarioRows.forEach(row => {
+    if (!row?.rowId || !baselineIds.has(row.rowId)) {
+      sum += rowCostValue(row, variant);
+    }
+  });
+
+  return sum;
+}
+
+function rowChangedComparedToBaseline(row) {
+  const baselineRow = findBaselineRow(row);
+  if (!baselineRow) return true;
+  return baselineRow.vorher !== row.vorher ||
+    baselineRow.nachher !== row.nachher ||
+    Math.round(Number(baselineRow.flaeche) || 0) !== Math.round(Number(row.flaeche) || 0);
+}
+
+function sumChangedScenarioArea(rows) {
+  const scenarioRows = rows || [];
+  const scenarioById = new Map(scenarioRows.filter(row => row?.rowId).map(row => [row.rowId, row]));
+  const baselineIds = new Set((baselineData || []).filter(row => row?.rowId).map(row => row.rowId));
+  let sum = 0;
+
+  // Geänderte oder gelöschte Ist-Zeilen zählen mit ihrer betroffenen Fläche.
+  (baselineData || []).forEach(baseRow => {
+    const scenarioRow = scenarioById.get(baseRow.rowId);
+    if (!scenarioRow) {
+      sum += Math.max(0, Number(baseRow.flaeche) || 0);
+      return;
+    }
+    if (rowChangedComparedToBaseline(scenarioRow)) {
+      sum += Math.max(0, Number(scenarioRow.flaeche) || Number(baseRow.flaeche) || 0);
+    }
+  });
+
+  // Neue Szenario-Zeilen zählen mit ihrer Fläche.
+  scenarioRows.forEach(row => {
+    if (!row?.rowId || !baselineIds.has(row.rowId)) {
+      sum += Math.max(0, Number(row.flaeche) || 0);
+    }
+  });
+
+  return sum;
+}
+
+function sealedWeight(label) {
+  if (label === "Versiegelte Belagsfläche") return 1;
+  if (label === "Teilversiegelte Belagsfläche") return 0.5;
+  return 0;
+}
+
+function rowSealedArea(row) {
+  if (!row) return 0;
+  return Math.max(0, Number(row.flaeche) || 0) * sealedWeight(row.nachher);
+}
+
+function sumSealedArea(rows) {
+  return (rows || []).reduce((sum, row) => sum + rowSealedArea(row), 0);
+}
+
+function getIndicatorCount() {
+  return Math.max(0, Math.round(parseNumber(indicatorCountInput?.value || 0)));
+}
+
+function getIndicatorLabel() {
+  const labels = {
+    person: "Person",
+    we: "WE"
+  };
+  return labels[indicatorTypeSelect?.value] || "Einheit";
+}
+
+function updateIndicatorLabels() {
+  const label = getIndicatorLabel();
+  indicatorLabelBaselineEl.textContent = label;
+  indicatorLabelScenarioEl.textContent = label;
+}
+
 function sortDataLikePlot() {
   data.sort((a, b) => Math.abs(calculateBilanz(b)) - Math.abs(calculateBilanz(a)));
 }
 
 function renderDynamicHeaders() {
   dataTableHeader.innerHTML = `
-    <th>Vorher</th>
-    <th>Nachher / Maßnahme</th>
-    <th>Fläche</th>
-    <th>Bilanz</th>
+    <th title="Ausgangszustand">Vorher</th>
+    <th title="Szenario / Maßnahme">Nachher</th>
+    <th>Fläche m²</th>
+    <th>Bilanz m²</th>
     <th>X</th>
-    <th>Check</th>
+    <th>Plot</th>
   `;
 }
 
@@ -377,9 +1000,11 @@ function renderFactorsTable() {
   factorsTbody.innerHTML = "";
 
   backendData.forEach((d, index) => {
+    if (d.kurz === undefined) d.kurz = DEFAULT_SHORT_LABELS[d.beschreibung] || d.beschreibung;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><input type="text" class="form-control form-control-sm factor-name" data-index="${index}" value="${escapeHtml(d.beschreibung)}"></td>
+      <td><input type="text" class="form-control form-control-sm factor-short" data-index="${index}" value="${escapeHtml(d.kurz)}"></td>
       <td><input type="number" step="0.01" class="form-control form-control-sm factor-value" data-index="${index}" value="${d.faktor}"></td>
       <td><button class="btn btn-outline-danger btn-sm delete-factor" data-index="${index}">x</button></td>
     `;
@@ -389,7 +1014,23 @@ function renderFactorsTable() {
   document.querySelectorAll('.factor-name').forEach(el => {
     el.addEventListener('input', e => {
       const idx = Number(e.target.dataset.index);
-      backendData[idx].beschreibung = e.target.value.trim();
+      const oldName = backendData[idx].beschreibung;
+      const newName = e.target.value.trim();
+      backendData[idx].beschreibung = newName;
+      if (!backendData[idx].kurz || backendData[idx].kurz === oldName) backendData[idx].kurz = newName;
+      [baselineData, scenarioData].forEach(rows => rows.forEach(row => {
+        if (row.vorher === oldName) row.vorher = newName;
+        if (row.nachher === oldName) row.nachher = newName;
+      }));
+      renderTable();
+      recalculate();
+    });
+  });
+
+  document.querySelectorAll('.factor-short').forEach(el => {
+    el.addEventListener('input', e => {
+      const idx = Number(e.target.dataset.index);
+      backendData[idx].kurz = e.target.value.trim();
       renderTable();
       recalculate();
     });
@@ -408,10 +1049,10 @@ function renderFactorsTable() {
       const idx = Number(e.target.dataset.index);
       const factorName = backendData[idx]?.beschreibung;
       backendData.splice(idx, 1);
-      data.forEach(row => {
+      [baselineData, scenarioData].forEach(rows => rows.forEach(row => {
         if (row.vorher === factorName) row.vorher = "";
         if (row.nachher === factorName) row.nachher = "";
-      });
+      }));
       renderFactorsTable();
       renderTable();
       recalculate();
@@ -419,10 +1060,39 @@ function renderFactorsTable() {
   });
 }
 
+function renderCostsTable() {
+  costsTbody.innerHTML = "";
+
+  costData.forEach((d, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <strong>${escapeHtml(shortLabel(d.beschreibung))}</strong>
+        <div class="mini-label mt-1">${escapeHtml(d.beschreibung)}</div>
+      </td>
+      <td><input type="number" step="1" class="form-control form-control-sm cost-value" data-index="${index}" data-field="billig" aria-label="günstig Euro pro Quadratmeter" value="${Math.round(d.billig || 0)}"></td>
+      <td><input type="number" step="1" class="form-control form-control-sm cost-value" data-index="${index}" data-field="mittel" aria-label="mittel Euro pro Quadratmeter" value="${Math.round(d.mittel || 0)}"></td>
+      <td><input type="number" step="1" class="form-control form-control-sm cost-value" data-index="${index}" data-field="teuer" aria-label="teuer Euro pro Quadratmeter" value="${Math.round(d.teuer || 0)}"></td>
+    `;
+    costsTbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('.cost-value').forEach(el => {
+    el.addEventListener('input', e => {
+      const idx = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      costData[idx][field] = Math.round(parseNumber(e.target.value));
+      recalculate(false);
+    });
+  });
+}
+
 function factorOptions(selectedValue) {
-  return backendData.map(d =>
-    `<option value="${escapeHtml(d.beschreibung)}" ${selectedValue === d.beschreibung ? "selected" : ""}>${escapeHtml(d.beschreibung)}</option>`
-  ).join("");
+  return backendData.map(d => {
+    const selected = selectedValue === d.beschreibung ? "selected" : "";
+    const label = shortLabel(d.beschreibung);
+    return `<option value="${escapeHtml(d.beschreibung)}" title="${escapeHtml(d.beschreibung)}" ${selected}>${escapeHtml(label)}</option>`;
+  }).join("");
 }
 
 function renderTable() {
@@ -434,19 +1104,19 @@ function renderTable() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>
-        <select class="form-select form-select-sm w-100" data-index="${index}" data-field="vorher">
+        <select class="form-select form-select-sm w-100" data-index="${index}" data-field="vorher" title="${escapeHtml(row.vorher)}">
           <option value=""></option>
           ${factorOptions(row.vorher)}
         </select>
       </td>
       <td>
-        <select class="form-select form-select-sm w-100" data-index="${index}" data-field="nachher">
+        <select class="form-select form-select-sm w-100" data-index="${index}" data-field="nachher" title="${escapeHtml(row.nachher)}">
           <option value=""></option>
           ${factorOptions(row.nachher)}
         </select>
       </td>
-      <td><input type="number" step="1" class="form-control form-control-sm w-100" value="${row.flaeche}" data-index="${index}" data-field="flaeche"></td>
-      <td id="balance-${index}" class="${bilanz >= 0 ? 'positive' : 'negative'}">${formatNumber(bilanz)}</td>
+      <td><input type="number" step="1" class="form-control form-control-sm w-100" value="${Math.round(row.flaeche)}" data-index="${index}" data-field="flaeche"></td>
+      <td id="balance-${index}" class="${bilanz >= 0 ? 'positive' : 'negative'}">${formatSquareMeters(bilanz)}</td>
       <td><button class="btn btn-outline-danger btn-sm btn-delete" data-index="${index}">x</button></td>
       <td><input type="checkbox" data-index="${index}" class="row-check" ${row.checked ? "checked" : ""}></td>
     `;
@@ -454,33 +1124,31 @@ function renderTable() {
   });
 
   rowStats.textContent = `${data.length} Zeilen`;
+  if (rowStatsModal) rowStatsModal.textContent = `${data.length} Zeilen`;
 
   document.querySelectorAll("#dataTable input, #dataTable select").forEach(el => {
     el.addEventListener("input", e => {
       const idx = Number(e.target.dataset.index);
       const field = e.target.dataset.field;
       if (!field) return;
-
-      data[idx][field] = field === "flaeche" ? parseNumber(e.target.value) : e.target.value;
-      recalculate(false); // kein Sortieren während des Tippens
+      data[idx][field] = field === "flaeche" ? Math.round(parseNumber(e.target.value)) : e.target.value;
+      recalculate(false);
     });
 
     el.addEventListener("change", e => {
       const idx = Number(e.target.dataset.index);
       const field = e.target.dataset.field;
       if (!field) return;
-
-      data[idx][field] = field === "flaeche" ? parseNumber(e.target.value) : e.target.value;
-      recalculate(true); // erst nach Abschluss sortieren
+      data[idx][field] = field === "flaeche" ? Math.round(parseNumber(e.target.value)) : e.target.value;
+      recalculate(true);
     });
 
     el.addEventListener("blur", e => {
       const idx = Number(e.target.dataset.index);
       const field = e.target.dataset.field;
       if (!field) return;
-
-      data[idx][field] = field === "flaeche" ? parseNumber(e.target.value) : e.target.value;
-      recalculate(true); // auch beim Verlassen des Feldes sortieren
+      data[idx][field] = field === "flaeche" ? Math.round(parseNumber(e.target.value)) : e.target.value;
+      recalculate(true);
     });
   });
 
@@ -502,6 +1170,8 @@ function renderTable() {
 }
 
 function recalculate(sortRows = true) {
+  data = scenarioData;
+
   if (sortRows) {
     sortDataLikePlot();
     renderTable();
@@ -509,13 +1179,50 @@ function recalculate(sortRows = true) {
     updateBalanceCellsOnly();
   }
 
-  let sum = 0;
-  data.forEach((row) => {
-    sum += calculateBilanz(row);
-  });
+  const baselineSum = sumBilanz(baselineData);
+  const scenarioSum = sumBilanz(scenarioData);
+  const delta = scenarioSum - baselineSum;
+  const extraCost = sumExtraCosts(scenarioData);
+  const changedScenarioArea = sumChangedScenarioArea(scenarioData);
+  const extraCostPerM2 = changedScenarioArea > 0 ? extraCost / changedScenarioArea : 0;
+  const sealedBaseline = sumSealedArea(baselineData);
+  const sealedScenario = sumSealedArea(scenarioData);
+  const sealedDeltaValue = sealedScenario - sealedBaseline;
+  const indicatorCount = getIndicatorCount();
+  updateIndicatorLabels();
 
-  sumCell.textContent = formatNumber(sum);
-  sumCell.className = sum >= 0 ? "positive" : "negative";
+  sumCell.textContent = formatSquareMeters(scenarioSum);
+  sumCell.className = scenarioSum >= 0 ? "positive" : "negative";
+
+  baselineSumEl.textContent = formatSquareMeters(baselineSum);
+  baselineSumEl.className = `kpi-value ${baselineSum >= 0 ? 'positive' : 'negative'}`;
+
+  scenarioSumEl.textContent = formatSquareMeters(scenarioSum);
+  scenarioSumEl.className = `kpi-value ${scenarioSum >= 0 ? 'positive' : 'negative'}`;
+
+  deltaSumEl.textContent = formatSquareMeters(delta, true);
+  deltaSumEl.className = `kpi-value ${delta >= 0 ? 'positive' : 'negative'}`;
+
+  extraCostSumEl.textContent = formatThousandEuro(extraCost);
+  extraCostSumEl.className = `kpi-value ${extraCost <= 0 ? 'positive' : 'negative'}`;
+
+  extraCostPerM2El.textContent = changedScenarioArea > 0 ? formatEuroPerSquareMeter(extraCostPerM2) : "–";
+  extraCostPerM2El.className = `kpi-value ${extraCost <= 0 ? 'positive' : 'negative'}`;
+
+  sealedDeltaEl.textContent = formatSquareMeters(sealedDeltaValue, true);
+  sealedDeltaEl.className = `kpi-value ${sealedDeltaValue <= 0 ? 'positive' : 'negative'}`;
+
+  if (indicatorCount > 0) {
+    baselinePerIndicatorEl.textContent = formatSquareMeters(baselineSum / indicatorCount);
+    baselinePerIndicatorEl.className = `kpi-value ${baselineSum >= 0 ? 'positive' : 'negative'}`;
+    scenarioPerIndicatorEl.textContent = formatSquareMeters(scenarioSum / indicatorCount);
+    scenarioPerIndicatorEl.className = `kpi-value ${scenarioSum >= 0 ? 'positive' : 'negative'}`;
+  } else {
+    baselinePerIndicatorEl.textContent = "–";
+    scenarioPerIndicatorEl.textContent = "–";
+    baselinePerIndicatorEl.className = "kpi-value";
+    scenarioPerIndicatorEl.className = "kpi-value";
+  }
 
   renderWaterfallPlot();
 }
@@ -525,14 +1232,22 @@ function updateBalanceCellsOnly() {
     const bilanz = calculateBilanz(row);
     const cell = document.getElementById(`balance-${index}`);
     if (cell) {
-      cell.textContent = formatNumber(bilanz);
+      cell.textContent = formatSquareMeters(bilanz);
       cell.className = bilanz >= 0 ? "positive" : "negative";
     }
   });
 }
 
+function getPlotHeight(labelCount = 0) {
+  const chartCard = document.querySelector('.dashboard-chart-card');
+  if (chartCard?.classList.contains('plot-focus-mode')) {
+    return Math.max(640, window.innerHeight - 90);
+  }
+  return Math.max(680, Math.min(980, window.innerHeight - 350), 500 + labelCount * 8);
+}
+
 function renderWaterfallPlot() {
-  const plotRows = data
+  const plotRows = scenarioData
     .filter(row => row.checked && row.flaeche !== 0)
     .map(row => {
       const faktorVorher = findFactor(row.vorher)?.faktor;
@@ -544,7 +1259,8 @@ function renderWaterfallPlot() {
         after: row.nachher,
         factorBefore: faktorVorher,
         factorAfter: faktorNachher,
-        value
+        value,
+        extraCost: calculateExtraCost(row)
       };
     })
     .filter(row => row.before || row.after)
@@ -562,18 +1278,21 @@ function renderWaterfallPlot() {
 
   const labels = uniqueLabels(plotRows.map(r => r.label));
   const netBalance = plotRows.reduce((sum, r) => sum + r.value, 0);
+  const baselineBalance = sumBilanz(baselineData);
+  const delta = netBalance - baselineBalance;
   const totalColor = netBalance >= 0 ? COLORS.total_pos : COLORS.total_neg;
 
   const hoverRows = plotRows.map(r => (
     `<b>${escapeHtml(String(r.before || ''))} → ${escapeHtml(String(r.after || ''))}</b><br>` +
     `Vorher-Faktor: ${r.factorBefore ?? '?'}<br>` +
     `Nachher-Faktor: ${r.factorAfter ?? '?'}<br>` +
-    `Bilanzbeitrag: ${formatNumber(r.value)}`
+    `Bilanzbeitrag: ${formatSquareMeters(r.value)}<br>` +
+    `Zusatzkosten ggü. Ist: ${formatThousandEuro(r.extraCost)}`
   ));
 
-  const xLabels = [...labels, 'Netto-Bilanz'];
+  const xLabels = [...labels, 'Szenario-Bilanz'];
   const yValues = [...plotRows.map(r => r.value), netBalance];
-  const customData = [...hoverRows, `<b>Netto-Bilanz</b><br>Wert: ${formatNumber(netBalance)}`];
+  const customData = [...hoverRows, `<b>Szenario-Bilanz</b><br>Ist: ${formatSquareMeters(baselineBalance)}<br>Szenario: ${formatSquareMeters(netBalance)}<br>Veränderung: ${formatSquareMeters(delta, true)}`];
   const totalIdx = xLabels.length - 1;
 
   const figData = [{
@@ -595,7 +1314,7 @@ function renderWaterfallPlot() {
 
   const layout = {
     title: {
-      text: `Blue–Green Infrastructure Balance — ${baseName || 'Projekt'}`,
+      text: `Szenario-Bilanz — ${baseName || 'Projekt'}`,
       x: 0.01,
       xanchor: 'left',
       font: { size: 22, color: COLORS.text }
@@ -603,8 +1322,8 @@ function renderWaterfallPlot() {
     paper_bgcolor: COLORS.paper,
     plot_bgcolor: COLORS.bg,
     font: { family: 'Inter, Arial, Helvetica, sans-serif', size: 13, color: COLORS.text },
-    margin: { l: 70, r: 30, t: 85, b: 120 },
-    height: Math.max(760, 520 + xLabels.length * 10),
+    margin: { l: 70, r: 30, t: 100, b: 120 },
+    height: getPlotHeight(xLabels.length),
     showlegend: false,
     hoverlabel: {
       bgcolor: '#FFFFFF',
@@ -623,7 +1342,7 @@ function renderWaterfallPlot() {
       tickangle: -18
     },
     yaxis: {
-      title: 'Fläche',
+      title: 'Bilanzwert',
       showgrid: true,
       gridcolor: COLORS.grid,
       gridwidth: 0.8,
@@ -653,9 +1372,9 @@ function renderWaterfallPlot() {
     annotations: [{
       x: totalIdx,
       y: netBalance,
-      text: 'Final balance',
+      text: `Δ zu Ist: ${formatNumber(delta, true)}`,
       showarrow: false,
-      yshift: netBalance >= 0 ? 22 : -22,
+      yshift: netBalance >= 0 ? 24 : -24,
       font: { size: 11, color: COLORS.muted }
     }]
   };
@@ -665,7 +1384,7 @@ function renderWaterfallPlot() {
     displaylogo: false,
     toImageButtonOptions: {
       format: 'png',
-      filename: `plot_waterfall_${baseName || 'projekt'}`,
+      filename: `plot_szenario_${baseName || 'projekt'}`,
       scale: 10
     }
   });
@@ -703,24 +1422,31 @@ function loadProjectCsv(text, fileName = 'Projekt') {
       hideError();
       baseName = fileName.replace(/\.csv$/i, '');
 
-      data = rows.map((r) => ({
+      nextRowId = 1;
+      const importedRows = rows.map((r) => ({
+        rowId: `row-${nextRowId++}`,
         vorher: String(r[beforeKey] || '').trim(),
         nachher: String(r[afterKey] || '').trim(),
-        flaeche: parseNumber(r[areaKey]),
+        flaeche: Math.round(parseNumber(r[areaKey])),
         checked: true
       }));
 
-      data.forEach(row => {
+      importedRows.forEach(row => {
         ensureFactorExists(row.vorher, 0);
         ensureFactorExists(row.nachher, 0);
       });
 
+      baselineData = cloneRows(importedRows);
+      scenarioData = cloneRows(importedRows);
+      data = scenarioData;
+
       renderFactorsTable();
+      renderCostsTable();
       renderDynamicHeaders();
       recalculate();
 
       projectInfo.classList.remove('d-none');
-      projectInfo.innerHTML = `<b>${escapeHtml(baseName)}</b> geladen. ${data.length} Datensätze importiert.`;
+      projectInfo.innerHTML = `<b>${escapeHtml(baseName)}</b> geladen. ${data.length} Datensätze als Ist-Zustand importiert. Das Szenario kann jetzt bearbeitet werden.`;
     },
     error: function(err) {
       showError('Fehler beim Einlesen der CSV: ' + err.message);
@@ -744,40 +1470,160 @@ document.getElementById('csvUpload').addEventListener('change', async (e) => {
   loadProjectCsv(text, file.name);
 });
 
-document.getElementById('addRowBtn').addEventListener('click', () => {
-  data.push({
+function addScenarioRow() {
+  scenarioData.push({
+    rowId: `row-${nextRowId++}`,
     vorher: backendData[0]?.beschreibung || '',
     nachher: backendData[0]?.beschreibung || '',
     flaeche: 0,
     checked: true
   });
+  data = scenarioData;
   recalculate();
+}
+
+document.getElementById('addRowBtn')?.addEventListener('click', addScenarioRow);
+document.getElementById('addRowBtnModal').addEventListener('click', addScenarioRow);
+
+function resetScenarioToBaseline() {
+  scenarioData = cloneRows(baselineData);
+  data = scenarioData;
+  recalculate();
+}
+
+document.getElementById('resetScenarioBtn')?.addEventListener('click', resetScenarioToBaseline);
+document.getElementById('resetScenarioBtnModal').addEventListener('click', resetScenarioToBaseline);
+
+document.getElementById('scrollToChartBtn')?.addEventListener('click', () => {
+  document.getElementById('waterfallContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
-document.getElementById('scrollToChartBtn').addEventListener('click', () => {
-  document.getElementById('waterfallContainer').scrollIntoView({ behavior: 'smooth' });
+document.getElementById('scrollToChartBtn2')?.addEventListener('click', () => {
+  document.getElementById('waterfallContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 document.getElementById('addFactorBtn').addEventListener('click', () => {
-  backendData.push({ beschreibung: 'Neue Maßnahme', faktor: 0 });
+  backendData.push({ beschreibung: 'Neue Maßnahme', kurz: 'Neue Maßnahme', faktor: 0 });
   renderFactorsTable();
   renderTable();
   recalculate();
+});
+
+
+document.getElementById('resetCostsBtn').addEventListener('click', () => {
+  costData = JSON.parse(JSON.stringify(DEFAULT_COSTS));
+  renderCostsTable();
+  recalculate(false);
+});
+
+costVariantSelect.addEventListener('change', e => {
+  activeCostVariant = e.target.value;
+  recalculate(false);
+});
+
+indicatorTypeSelect.addEventListener('change', () => {
+  recalculate(false);
+});
+
+indicatorCountInput.addEventListener('input', () => {
+  recalculate(false);
 });
 
 document.getElementById('resetFactorsBtn').addEventListener('click', () => {
   backendData = JSON.parse(JSON.stringify(DEFAULT_FACTORS));
-  data.forEach(row => {
+  [baselineData, scenarioData].forEach(rows => rows.forEach(row => {
     ensureFactorExists(row.vorher, 0);
     ensureFactorExists(row.nachher, 0);
-  });
+  }));
   renderFactorsTable();
+  renderCostsTable();
   renderTable();
   recalculate();
 });
 
+
+function setKpiExpanded(expanded) {
+  const banner = document.getElementById('scenarioBanner');
+  const floatBtn = document.getElementById('floatingToggleKpiBtn');
+  if (!banner) return;
+
+  banner.classList.toggle('is-collapsed', !expanded);
+
+  // Fallback zusätzlich zur CSS-Klasse, damit es in allen Browsern sicher sichtbar wird.
+  document.querySelectorAll('.kpi-detail-row').forEach(el => {
+    el.style.display = expanded ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.scenario-help-text').forEach(el => {
+    el.style.display = expanded ? 'block' : 'none';
+  });
+
+  if (floatBtn) {
+    floatBtn.textContent = expanded ? '▴ Weniger' : '▾ Mehr';
+    floatBtn.setAttribute('aria-expanded', String(expanded));
+  }
+
+  setTimeout(() => {
+    try { Plotly.Plots.resize(document.getElementById('waterfallContainer')); } catch (e) {}
+  }, 120);
+}
+
+function toggleKpiExpanded() {
+  const banner = document.getElementById('scenarioBanner');
+  const isCollapsed = banner ? banner.classList.contains('is-collapsed') : true;
+  setKpiExpanded(isCollapsed);
+}
+
+function setPlotFocus(focused) {
+  const chartCard = document.querySelector('.dashboard-chart-card');
+  const btn = document.getElementById('focusPlotBtn');
+  if (!chartCard) return;
+
+  chartCard.classList.toggle('plot-focus-mode', focused);
+  document.body.classList.toggle('plot-is-focused', focused);
+
+  if (btn) btn.textContent = focused ? '✕ Schließen' : '⛶ Plot';
+
+  setTimeout(() => {
+    renderWaterfallPlot();
+    try { Plotly.Plots.resize(document.getElementById('waterfallContainer')); } catch (e) {}
+  }, 120);
+}
+
+function togglePlotFocus() {
+  const chartCard = document.querySelector('.dashboard-chart-card');
+  setPlotFocus(!chartCard?.classList.contains('plot-focus-mode'));
+}
+
+// Delegierte Klicks: robust, auch wenn Buttons später neu gerendert werden.
+document.addEventListener('click', e => {
+  const moreBtn = e.target.closest('#floatingToggleKpiBtn');
+  if (moreBtn) {
+    e.preventDefault();
+    toggleKpiExpanded();
+    return;
+  }
+
+  const plotBtn = e.target.closest('#focusPlotBtn');
+  if (plotBtn) {
+    e.preventDefault();
+    togglePlotFocus();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') setPlotFocus(false);
+});
+
+// Initialzustand explizit setzen, damit die Anzeige sicher synchron ist.
+setKpiExpanded(false);
+
+document.getElementById('dataModal')?.addEventListener('hidden.bs.modal', () => {
+  renderWaterfallPlot();
+});
+
 renderDynamicHeaders();
 renderFactorsTable();
+renderCostsTable();
 renderTable();
 recalculate();
 </script>
